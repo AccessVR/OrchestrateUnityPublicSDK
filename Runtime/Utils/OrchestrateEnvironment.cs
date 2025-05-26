@@ -7,7 +7,11 @@ namespace AccessVR.OrchestrateVR.SDK
 {
     public class OrchestrateEnvironment : GenericSingleton<OrchestrateEnvironment>
     {
-        public static string Environment;
+        private static string Environment = "production";
+
+        private static string? BaseUrlOverride = null;
+
+        private static string? CdnUrlOverride = null;
 
         private static string? authToken;
 
@@ -31,8 +35,18 @@ namespace AccessVR.OrchestrateVR.SDK
             return String.IsNullOrEmpty(authToken) ? PlayerPrefs.GetString("apiKey") : authToken;
         }
 
-        public static string GetBaseURL()
+        public static void SetBaseUrl(string url)
         {
+            BaseUrlOverride = url;
+        }
+
+        public static string GetBaseUrl()
+        {
+            if (!string.IsNullOrEmpty(BaseUrlOverride))
+            {
+                return BaseUrlOverride;
+            }
+
             return Environment switch
             {
                 "production" => "https://app.orchestratevr.com",
@@ -43,8 +57,18 @@ namespace AccessVR.OrchestrateVR.SDK
             };
         }
 
+        public static void SetCdnUrl(string url)
+        {
+            CdnUrlOverride = url;
+        }
+
         public static string GetCdnUrl(string? path = null)
         {
+            if (!string.IsNullOrEmpty(CdnUrlOverride))
+            {
+                return CdnUrlOverride;
+            }
+
             string CdnBaseURL = Environment switch
             {
                 "production" => "https://files.accessvr.com",
@@ -70,7 +94,6 @@ namespace AccessVR.OrchestrateVR.SDK
         }
 
         public StyleRefSettings colorStyles;
-        [FormerlySerializedAs("standInPreviewImage")] public Sprite placeholderPreviewImage;
         
         public static StyleRefSettings ColorStyles => Instance.colorStyles;
 
