@@ -1,0 +1,12 @@
+{
+    "name": "AccessVR.OrchestrateVR.Public.SDK.Tests",
+    "references": [
+      "Newtonsoft.Json"
+    ],
+    "optionalUnityReferences": [
+      "TestAssemblies"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": []
+  }
+  
