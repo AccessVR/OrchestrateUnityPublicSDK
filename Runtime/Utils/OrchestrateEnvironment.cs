@@ -80,7 +80,7 @@ namespace AccessVR.OrchestrateVR.SDK
 
         public static string GetUrl(string? path = null)
         {
-            return GetBaseURL() + (path != null ? "/" + path.TrimStart('/') : "");
+            return GetBaseUrl() + (path != null ? "/" + path.TrimStart('/') : "");
         }
 
         public static string CdnUrl(string? path)
