@@ -8,7 +8,7 @@ A Unity package for interacting with the OrchestrateVR REST API.
 2. Open the Package Manager (Window > Package Manager)
 3. Click the + button in the top-left corner
 4. Select "Add package from git URL..."
-5. Enter the package URL: `com.accessvr.orchestratevr.sdk`
+5. Enter the package URL: `com.accessvr.orchestratevr.sdk.public`
 
 ## Usage
 
