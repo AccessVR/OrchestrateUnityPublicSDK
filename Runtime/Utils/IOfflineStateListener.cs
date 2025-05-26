@@ -1,8 +1,7 @@
 namespace AccessVR.OrchestrateVR.SDK
 {
-    public interface OfflineStateListener
+    public interface IOfflineStateListener
     {
         public void OnOfflineStateChanged(bool newValue, bool oldValue);
-
     }
 }

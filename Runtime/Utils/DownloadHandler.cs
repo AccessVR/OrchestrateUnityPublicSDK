@@ -79,10 +79,10 @@ namespace AccessVR.OrchestrateVR.SDK
 
 		private IEnumerator StartNextDownload(LessonDownloadJob job)
 		{
-			if (OrchestrateEnvironment.Offline)
+			if (Environment.Offline)
 			{
 				// XXX: This needs to bubble up somehow
-				// OrchestrateController.Instance.ShowError("Please connect to the Internet to download new content. (4)");
+				// Orchestrate.Instance.ShowError("Please connect to the Internet to download new content. (4)");
 				
 				OnJobFailure(job);
 			}
@@ -96,11 +96,11 @@ namespace AccessVR.OrchestrateVR.SDK
 					AssetData asset = job.assets.First();
 					
 					// XXX: require authentication for CDN access
-					string assetUrl = OrchestrateEnvironment.GetCdnUrl(asset.path);
+					string assetUrl = Environment.GetCdnUrl(asset.path);
 
 					if (asset.IsVideo() && !String.IsNullOrEmpty(asset.originalPath))
 					{
-						assetUrl = OrchestrateEnvironment.GetCdnUrl(asset.originalPath);
+						assetUrl = Environment.GetCdnUrl(asset.originalPath);
 					}
 					
 					job.currentRequest = new UnityWebRequest(assetUrl, UnityWebRequest.kHttpVerbGET);
@@ -123,7 +123,7 @@ namespace AccessVR.OrchestrateVR.SDK
 					if (asset.HasThumbnail())
 					{
 						// XXX: require authentication for CDN access
-						string assetThumbnailUrl = OrchestrateEnvironment.GetCdnUrl(asset.thumbnailPath);
+						string assetThumbnailUrl = Environment.GetCdnUrl(asset.thumbnailPath);
 						job.currentRequest = new UnityWebRequest(assetThumbnailUrl, UnityWebRequest.kHttpVerbGET);
 						Directory.CreateDirectory(asset.thumbnailLocalPath.Substring(0, asset.thumbnailLocalPath.LastIndexOf("/") + 1));
 						if (File.Exists(asset.tempThumbnailLocalPath))

@@ -30,6 +30,7 @@ namespace AccessVR.OrchestrateVR.SDK
 		[JsonProperty("completeMessage")] public string completeMessage;
 		[JsonProperty("showSceneList")] public bool showSceneList = false;
 		[JsonProperty("isLocked")] public bool isLocked = false;
+		
 		private bool updateIsAvailable = false;
 		private bool _isDownloaded = false;
 		private int? _downloadableAssetCount = null;
@@ -242,7 +243,7 @@ namespace AccessVR.OrchestrateVR.SDK
 			throw new Exception("We don't use LessonData.LoadPreviewImage anymore");
 
 			// Texture2D tex = null;
-			// path = OrchestrateEnvironment.CdnUrl(path);
+			// path = Orchestrate.CdnUrl(path);
 
 			// if (!IsDownloaded)
 			// {
@@ -284,9 +285,9 @@ namespace AccessVR.OrchestrateVR.SDK
 				path += "?preview=1";
 			}
 			
-			string url = OrchestrateEnvironment.GetUrl(path);
+			string url = Environment.GetUrl(path);
 			
-			var client = OrchestrateEnvironment.CreateClient();
+			var client = Environment.CreateClient();
 
 			if (Preview)
 			{

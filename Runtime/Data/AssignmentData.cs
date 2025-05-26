@@ -16,6 +16,7 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("guid")] public string guid;
         [JsonProperty("isCompleted")] public bool isCompleted = false;
         [JsonProperty("completedDate")] public DateTime completedDate;
+        
         public string DateFormatString = "M/d/yyyy h:mm:ss tt";
         
         private bool isValid = false;

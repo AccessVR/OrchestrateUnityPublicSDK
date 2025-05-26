@@ -4,7 +4,7 @@ using System.Collections;
 
 namespace AccessVR.OrchestrateVR.SDK
 {
-    public class ExamplePlayModeTest
+    public class HttpClientTests
     {
         [UnityTest]
         public IEnumerator PlayModeTest_Passes()

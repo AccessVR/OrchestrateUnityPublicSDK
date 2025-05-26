@@ -32,7 +32,7 @@ namespace AccessVR.OrchestrateVR.SDK
 
                 if (this.transform.parent == null) 
                 {
-                    DontDestroyOnLoad(this.gameObject);
+                    DontDestroyOnLoad(gameObject);
                 }
             }
             else 

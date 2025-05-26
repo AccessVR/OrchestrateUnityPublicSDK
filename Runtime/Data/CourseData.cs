@@ -114,7 +114,7 @@ namespace AccessVR.OrchestrateVR.SDK
 		
 		private void LoadPreviewImage(string path)
 		{
-			path = OrchestrateEnvironment.CdnUrl(path);
+			path = Environment.CdnUrl(path);
 			Texture2D tex = null;
 
 			if (!isLocal)

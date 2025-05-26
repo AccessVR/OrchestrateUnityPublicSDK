@@ -20,6 +20,7 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("path")] public string path;
         [JsonProperty("localPath")] public string localPath;
         [JsonProperty("originalPath")] public string originalPath;
+        
         private Texture2D texture;
         public string tempLocalPath => localPath + ".tmp";
         [JsonProperty("thumbnailPath")] public string thumbnailPath;
