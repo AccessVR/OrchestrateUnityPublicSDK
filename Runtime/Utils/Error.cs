@@ -10,6 +10,8 @@ namespace AccessVR.OrchestrateVR.SDK
         UserHasNoAssignments, // "You do not have any assignments."
         FailedToLoadUserCode, // "Failed to request user code"
         FailedToLoadAssignments, // "Failed to load your assignments. (1)"
+        DownloadFailed, // "Failed to download file"
+        TooManyRetries, // "We tried downloading the file too many times",
     }
     
     public class Error
@@ -45,6 +47,12 @@ namespace AccessVR.OrchestrateVR.SDK
 
         public Error(string message, Exception cause)
         {
+            _message = message;
+        }
+
+        public Error(ErrorType type, string message)
+        {
+            _type = type;
             _message = message;
         }
         

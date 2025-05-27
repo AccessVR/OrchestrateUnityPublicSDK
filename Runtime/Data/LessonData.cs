@@ -35,7 +35,6 @@ namespace AccessVR.OrchestrateVR.SDK
 		private bool _isDownloaded = false;
 		private int? _downloadableAssetCount = null;
 		private List<AssetData> downloadList;
-		private bool IsSummary = true;
 		private string DateFormatString = "M/d/yyyy h:mm:ss tt";
 
 		public bool Preview { get; set; }
@@ -75,7 +74,9 @@ namespace AccessVR.OrchestrateVR.SDK
 			foreach (var scene in Scenes)
 			{
 				if (scene.Id == InitialSceneId)
+				{
 					return scene;
+				}
 			}
 			return null;
 		}
@@ -84,7 +85,9 @@ namespace AccessVR.OrchestrateVR.SDK
 			foreach (var scene in Scenes)
 			{
 				if (scene.Id == id)
+				{
 					return scene;
+				}
 			}
 			return null;
 		}
@@ -101,15 +104,9 @@ namespace AccessVR.OrchestrateVR.SDK
             {
 				string content = File.ReadAllText(contentPath);
 				LoadFromJson(JObject.Parse(content));
-				IsSummary = false;
 			} else
             {
 				LoadFromJson(jsonObject);
-			}
-
-			if (IsSummary)
-			{
-				DownloadPublishedLessonContent();
 			}
 		}
 
@@ -138,6 +135,13 @@ namespace AccessVR.OrchestrateVR.SDK
 		public LessonData()
 		{
 			//
+		}
+		
+		public FileData FileData => new FileData(Guid, "content.json");
+
+		public static LessonData Make(string guid)
+		{
+			return new LessonData(guid);
 		}
 		
 		private void ResetIsDownloaded()
@@ -270,6 +274,7 @@ namespace AccessVR.OrchestrateVR.SDK
 			// }
 		}
 		
+		/*
 
 		public async Task<bool> DownloadPublishedLessonContent()
 		{
@@ -353,6 +358,7 @@ namespace AccessVR.OrchestrateVR.SDK
 			}
 		}
 
+		
 		public async void StartDownload([CanBeNull] Action callOnStarted = null)
 		{
 			if (IsSummary || String.IsNullOrEmpty(Guid))
@@ -378,7 +384,7 @@ namespace AccessVR.OrchestrateVR.SDK
 
 		private void StartDownloadingAssets()
 		{
-			LessonDownloadJob job = new LessonDownloadJob();
+			DownloadJob job = new DownloadJob();
 			downloadList = new List<AssetData>();
 
 			foreach (SceneData scene in Scenes)
@@ -410,12 +416,16 @@ namespace AccessVR.OrchestrateVR.SDK
 				Debug.LogError("Error deleting Lesson content: " + e.Message);
 			}
 		}
-            
+		
+		    
 		public void CancelDownload()
 		{
 			DownloadHandler.Instance.CancelJob(Guid);
 			RemoveCachedContent();
 		}
+
+		
+		
 
 		public void RemoveCachedContentAndAssets()
 		{
@@ -430,6 +440,9 @@ namespace AccessVR.OrchestrateVR.SDK
 				Debug.Log("Error deleting directory: " + ex.Message);
 			}
 		}
+		
+		*/
+        
 		
 	}
 }

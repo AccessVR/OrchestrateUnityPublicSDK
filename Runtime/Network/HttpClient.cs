@@ -19,13 +19,13 @@ namespace AccessVR.OrchestrateVR.SDK
 			//
         }
 
-        public static HttpClient Create([CanBeNull] string authToken = null)
+        public static HttpClient Create([NotNull] string baseUrl, [CanBeNull] string authToken = null)
         {
             CookieContainer cookies = new CookieContainer();
 			HttpClientHandler handler = new HttpClientHandler();
 			handler.CookieContainer = cookies;
 
-			Uri uri = new Uri(Environment.GetUrl("/"));
+			Uri uri = new Uri(baseUrl);
 
 			Cookie deviceCookie = new Cookie("device-id", SystemInfo.deviceUniqueIdentifier);
 			deviceCookie.Domain = uri.Host;
@@ -43,7 +43,7 @@ namespace AccessVR.OrchestrateVR.SDK
 
         private string Url(string path)
         {
-	        return Environment.GetUrl(path);
+	        return Orchestrate.GetUrl(path);
         }
 
         public async UniTask<bool> IsLoggedIn()
@@ -101,15 +101,38 @@ namespace AccessVR.OrchestrateVR.SDK
 
         public async UniTask<UserData> GetUser([CanBeNull] string userId = null)
         {
-	        string url = Url("/api/json/reply/Authenticate");
+	        string path = "/api/json/reply/Authenticate";
 	        if (!String.IsNullOrEmpty(userId))
 	        {
-		        // TODO: use URL data path instead
+		        path = $"/api/users/{userId}";
 	        }
-	        HttpResponseMessage response = await GetAsync(url);
+	        HttpResponseMessage response = await GetAsync(Url(path));
 	        string responseBody = await HttpUtils.AssertSuccessfulResponse(response);
 			JObject rootObject = JObject.Parse(responseBody);
 			return rootObject.ToObject<UserData>();
+        }
+
+        public async UniTask<LessonData> GetLesson(LessonDataLookup lookup)
+        {
+	        string path = "/api/rest/published-lesson/" + lookup.Id;
+			
+			if (!String.IsNullOrEmpty(lookup.EmbedKey))
+			{
+				path += "/" + lookup.EmbedKey;
+			}
+			
+			if (lookup.Preview)
+			{
+				path += "?preview=1";
+			}
+			
+			HttpResponseMessage response = await GetAsync(Url(path));
+			string responseBody = await HttpUtils.AssertSuccessfulResponse(response);
+			JObject data = JObject.Parse(responseBody)["result"].ToObject<JObject>();
+			string guid = data["guid"]?.ToString();
+	        LessonData lessonData = data["content"].ToObject<LessonData>();
+			lessonData.Guid = guid;
+			return lessonData;
         }
 
         public async UniTask<SubmissionData> Submit(LessonData lesson)

@@ -5,10 +5,12 @@ using System.Linq;
 using JetBrains.Annotations;
 using Cysharp.Threading.Tasks;
 using System.Net.Http;
+using UnityEngine.Windows;
+using UnityEngine.Networking;
 
 namespace AccessVR.OrchestrateVR.SDK
 {
-	public enum Environments
+	public enum Environment
 	{
 		Production,
 		Staging,
@@ -17,11 +19,15 @@ namespace AccessVR.OrchestrateVR.SDK
 		Custom,
 	}
 	
-    public class Environment : GenericSingleton<Environment>
+    public class Orchestrate : GenericSingleton<Orchestrate>
     {
 	    [SerializeField]
-	    private Environments environmentName = Environments.Production;
+	    protected Environment environmentName = Environment.Production;
 
+	    public StyleRefSettings colorStyles;
+		
+        public static StyleRefSettings ColorStyles => Instance.colorStyles;
+	    
         private string _customBaseUrl = null;
 
         private string _customCdnUrl = null;
@@ -37,17 +43,17 @@ namespace AccessVR.OrchestrateVR.SDK
 	    [CanBeNull]
         public static UserData User => GetUser();
 
-        public static void Set(Environments name)
+        public static void Set(Environment name)
         {
 	        Instance.environmentName = name;
         }
 
-        public static Environments Get()
+        public static Environment Get()
         {
 	        return Instance.environmentName;
         }
 
-        public static bool Is(Environments environmentName)
+        public static bool Is(Environment environmentName)
         {
 	        return Instance.environmentName == environmentName;
         }
@@ -91,17 +97,17 @@ namespace AccessVR.OrchestrateVR.SDK
 
         public static string GetBaseUrl()
         {
-	        if (Is(Environments.Custom) && !String.IsNullOrEmpty(Instance._customBaseUrl))
+	        if (Is(Environment.Custom) && !String.IsNullOrEmpty(Instance._customBaseUrl))
 	        {
 		        return Instance._customBaseUrl;
 	        }
 
 	        return Instance.environmentName switch
             {
-                Environments.Production => "https://app.orchestratevr.com",
-                Environments.Staging => "https://orchestrate-stage.accessvr.com",
-                Environments.Development => "https://orchestrate-dev.accessvr.com",
-                Environments.Local => "https://ovr.avr.ngrok.io",
+                Environment.Production => "https://app.orchestratevr.com",
+                Environment.Staging => "https://orchestrate-stage.accessvr.com",
+                Environment.Development => "https://orchestrate-dev.accessvr.com",
+                Environment.Local => "https://ovr.avr.ngrok.io",
                 _ => "http://localhost"
             };
         }
@@ -128,14 +134,14 @@ namespace AccessVR.OrchestrateVR.SDK
 
         public static string GetCdnUrl([CanBeNull] string path = null)
         {
-            if (Is(Environments.Custom) && !String.IsNullOrEmpty(Instance._customCdnUrl))
+            if (Is(Environment.Custom) && !String.IsNullOrEmpty(Instance._customCdnUrl))
             {
                 return Instance._customCdnUrl;
             }
 
             string cdnBaseURL = Instance.environmentName switch
             {
-                Environments.Production => "https://files.accessvr.com",
+                Environment.Production => "https://files.accessvr.com",
                 _ => "https://dev.files.ovr.accessvr.com"
             };
 
@@ -255,6 +261,8 @@ namespace AccessVR.OrchestrateVR.SDK
             errorHandlers.Remove(handler);
         }
 
+        private static List<IDownloadJobListener> downloadProgressListeners = new();
+
         public static void FireError(Error error)
         {
             errorHandlers.ForEach((handler) => handler.HandleError(error));
@@ -323,7 +331,7 @@ namespace AccessVR.OrchestrateVR.SDK
 	        return _user != null || PlayerPrefs.HasKey("apiKey");
         }
 		
-		public async UniTask<UserData> LoadUserData(Action onUserDataLoaded)
+		public static async UniTask<UserData> LoadUser(Action onUserDataLoaded)
 		{
 			if (String.IsNullOrEmpty(GetAuthToken()))
 			{
@@ -373,7 +381,7 @@ namespace AccessVR.OrchestrateVR.SDK
 			
 			if (!Offline)
 			{
-				if (!await IsLoggedIn())
+				if (!await Instance.IsLoggedIn())
 				{
 					FireError(Error.NotAuthenticated);
 					return null;
@@ -381,7 +389,7 @@ namespace AccessVR.OrchestrateVR.SDK
 			}
 
 			onUserDataLoaded?.Invoke();
-			sessionListeners.ForEach((handler) => handler.OnUserData(GetUser()));
+			Instance.sessionListeners.ForEach((handler) => handler.OnUserData(GetUser()));
 			return GetUser();
 		}
 		
@@ -413,8 +421,52 @@ namespace AccessVR.OrchestrateVR.SDK
 
 			return settings;
 		}
+
+		public static async UniTask<LessonData> GetOrLoadLesson(LessonDataLookup lookup)
+		{
+			if (!lookup.Preview && HasCachedLesson(lookup.Guid))
+			{
+				return LoadCachedLesson(lookup.Guid);
+			}
+			else
+			{
+				return await LoadLesson(lookup);
+			}
+		}
+
+		public static async UniTask<LessonData> LoadLesson(LessonDataLookup lookup)
+		{
+			NumberUtils.AssertNotNullOrEmpty(lookup.Id);
+			StringUtils.AssertNotNullOrEmpty(lookup.Guid);
+			
+			return new LessonData();
+		}
+
+		public static bool HasCachedLesson(string guid)
+		{
+			StringUtils.AssertNotNullOrEmpty(guid);
+			
+			return false;
+		}
+
+		public static LessonData LoadCachedLesson(string guid)
+		{
+			StringUtils.AssertNotNullOrEmpty(guid);
+			
+			return new LessonData();
+		}
+
+		private static void CacheLesson(LessonData lessonData)
+		{
+			StringUtils.AssertNotNullOrEmpty(lessonData.Guid);
+		}
+
+		public static void RemoveCachedLesson(string guid, bool removeContentAndAssets = false)
+		{
+			StringUtils.AssertNotNullOrEmpty(guid);		
+		}
 		
-		public static List<LessonData> GetCachedLessons()
+		public static List<LessonData> GetCachedLessonList()
 		{
 			return new List<LessonData>();
 			
@@ -508,16 +560,16 @@ namespace AccessVR.OrchestrateVR.SDK
             }
 		}
 		
-		public async UniTask<string> LoadAuthToken(string newUserCode = null)
+		public static async UniTask<string> LoadAuthToken(string newUserCode = null)
 		{
 			if (newUserCode != null)
 			{
-				_userCode = newUserCode;
+				Instance._userCode = newUserCode;
 			}
 
 			try
 			{
-				string apiKey = await CreateClient().GetAuthToken(_userCode);
+				string apiKey = await CreateClient().GetAuthToken(Instance._userCode);
 				if (apiKey != null)
 				{
 					SetAuthToken(apiKey);
@@ -531,12 +583,55 @@ namespace AccessVR.OrchestrateVR.SDK
 			}
 		}
 
-		public async UniTask<SubmissionData> Submit(LessonData lesson)
+		public static async UniTask<SubmissionData> Submit(LessonData lesson)
 		{
 			SubmissionData submission = await CreateClient().Submit(lesson);
-			sessionListeners.ForEach((handler) => handler.onSubmission(submission));
+			Instance.sessionListeners.ForEach((handler) => handler.onSubmission(submission));
 			return submission;
 		}
-		
+
+		public static async UniTask<Texture2D> LoadTexture2D(FileData file)
+		{
+			return await TextureUtils.LoadTexture2D(file);
+		}
+
+		public static string GetCachePath(FileData file)
+		{
+			return file.Parent != null ? 
+                System.IO.Path.Combine(Application.persistentDataPath, file.Parent.Guid, file.Guid, StringUtils.ReplaceSpaces(file.Name)) 
+                : System.IO.Path.Combine(Application.persistentDataPath, file.Guid, StringUtils.ReplaceSpaces(file.Name));
+		}
+
+		public static bool IsCached(FileData file)
+		{
+			return System.IO.File.Exists(file.CachePath);
+		}
+
+		public static UnityWebRequest MakeCacheRequest(DownloadableFileData file)
+		{
+			UnityWebRequest request = new UnityWebRequest(file.Url, UnityWebRequest.kHttpVerbGET);
+			System.IO.Directory.CreateDirectory(file.CachePath.Substring(0, file.CachePath.LastIndexOf("/") + 1));
+			if (System.IO.File.Exists(file.TempCachePath))
+			{
+				System.IO.File.Delete(file.TempCachePath);
+			}
+			request.downloadHandler = new DownloadHandlerFile(file.TempCachePath);
+			return request;
+		}
+
+		public static void FinalizeCache(FileData file)
+		{
+			if (file.TempCachePath == null || !File.Exists(file.TempCachePath))
+			{
+				// nothing to do
+				return;
+			}
+			if (System.IO.File.Exists(file.CachePath))
+			{
+				System.IO.File.Delete(file.CachePath);
+			}
+			System.IO.File.Move(file.TempCachePath, file.CachePath);
+		}
+
     }
 }

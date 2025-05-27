@@ -10,7 +10,6 @@ namespace AccessVR.OrchestrateVR.SDK
     public class AssignmentData : AbstractData
     {
         [JsonProperty("createdBy")] public string createdBy;
-        [JsonProperty("course")] public CourseData course;
         [JsonProperty("dueDate")] public DateTime dueDate;
         [JsonProperty("createDate")] public DateTime createdDate;
         [JsonProperty("guid")] public string guid;
@@ -84,14 +83,7 @@ namespace AccessVR.OrchestrateVR.SDK
                                 System.Globalization.DateTimeStyles.AdjustToUniversal,
                                 out dueDate);
             }
-
-            //Grab Course Data
-            if (jsonObject["course"] != null)
-            {
-                JObject courseObject = jsonObject["course"].ToObject<JObject>();
-                course = new CourseData(courseObject);
-            }
-
+            
 
             //sets this data to be marked as valid, aka downloaded correctly
             isValid = true;

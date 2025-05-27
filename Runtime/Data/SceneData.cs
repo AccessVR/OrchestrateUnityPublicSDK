@@ -38,11 +38,12 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("showInSceneList")] public bool ShowInSceneList = true;
         [JsonProperty("thumbnailAsset")] public AssetData Thumbnail;
         [JsonProperty("endAction")] public ActionData endAction;
-        [JsonIgnore] public Scene scene;
         [JsonProperty("thumbnailURL")] public string thumbnailURL;
         [JsonProperty("timedEvents")] public List<AbstractEventData> TimedEvents;
         [JsonProperty("screenType")] public ScreenType screenType;
 
+        [JsonIgnore] public Scene scene;
+        
         // TODO: why is this here?
         // [JsonIgnore] public ViewerController controller;
         
