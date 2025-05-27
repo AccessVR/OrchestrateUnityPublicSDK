@@ -310,7 +310,7 @@ namespace AccessVR.OrchestrateVR.SDK
 		
 		public async UniTask<UserData> LoadUserData(Action onUserDataLoaded)
 		{
-			if (!String.IsNullOrEmpty(GetAuthToken()))
+			if (String.IsNullOrEmpty(GetAuthToken()))
 			{
 				if (!Offline)
 				{	
