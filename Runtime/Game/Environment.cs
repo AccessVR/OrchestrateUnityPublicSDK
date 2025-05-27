@@ -8,85 +8,100 @@ using System.Net.Http;
 
 namespace AccessVR.OrchestrateVR.SDK
 {
+	public enum Environments
+	{
+		Production,
+		Staging,
+		Development,
+		Local,
+		Custom,
+	}
+	
     public class Environment : GenericSingleton<Environment>
     {
-        private static string Name = "production";
+	    [SerializeField]
+	    private Environments environmentName = Environments.Production;
 
-        private static string BaseUrlOverride = null;
+        private string _customBaseUrl = null;
 
-        private static string CdnUrlOverride = null;
+        private string _customCdnUrl = null;
 
-        private static LessonData activeExperience;
+        private LessonData _activeExperience;
         
-        private static UserData _user;
+        private UserData _user;
 
-        private static string _authToken;
+        private string _authToken;
 
-        private static string _userCode;
-	    
+        private string _userCode;
+        
 	    [CanBeNull]
         public static UserData User => GetUser();
 
-        public static void Set(string environment)
+        public static void Set(Environments name)
         {
-            Name = environment;
+	        Instance.environmentName = name;
         }
 
-        public static string Get()
+        public static Environments Get()
         {
-            return Name ?? "local";
+	        return Instance.environmentName;
+        }
+
+        public static bool Is(Environments environmentName)
+        {
+	        return Instance.environmentName == environmentName;
         }
 
         public static void SetAuthToken(string token)
         {
 	        PlayerPrefs.SetString("apiKey", token);
 	        PlayerPrefs.Save();
-            _authToken = token;
+            Instance._authToken = token;
         }
 
         public static string GetAuthToken()
         {
-            return String.IsNullOrEmpty(_authToken) ? PlayerPrefs.GetString("apiKey") : _authToken;
+            return String.IsNullOrEmpty(Instance._authToken) ? PlayerPrefs.GetString("apiKey") : Instance._authToken;
         }
 
         public static void SetBaseUrl(string url)
         {
-            BaseUrlOverride = url;
+            Instance._customBaseUrl = url;
         }
 
         public static void SetActiveExperience(LessonData experience)
         {
-            activeExperience = experience;
+            Instance._activeExperience = experience;
         }
 
         public static void SetUser(UserData user)
         {
-            _user = user;
+            Instance._user = user;
         }
 
         public static UserData GetUser()
         {
-	        return _user;
+	        return Instance._user;
         }
 
         public static LessonData GetActiveExperience()
         {
-            return activeExperience;
+            return Instance._activeExperience;
         }
 
         public static string GetBaseUrl()
         {
-            if (!string.IsNullOrEmpty(BaseUrlOverride))
-            {
-                return BaseUrlOverride;
-            }
+	        if (Is(Environments.Custom) && !String.IsNullOrEmpty(Instance._customBaseUrl))
+	        {
+		        return Instance._customBaseUrl;
+	        }
 
-            return Name switch
+	        return Instance.environmentName switch
             {
-                "production" => "https://app.orchestratevr.com",
-                "stage" => "https://orchestrate-stage.accessvr.com",
-                "dev" => "https://orchestrate-dev.accessvr.com",
-                "local" => "https://ovr.avr.ngrok.io",
+                Environments.Production => "https://app.orchestratevr.com",
+                Environments.Staging => "https://orchestrate-stage.accessvr.com",
+                Environments.Development => "https://orchestrate-dev.accessvr.com",
+                Environments.Local => "https://ovr.avr.ngrok.io",
                 _ => "http://localhost"
             };
         }
@@ -108,31 +123,31 @@ namespace AccessVR.OrchestrateVR.SDK
         
         public static void SetCdnUrl(string url)
         {
-            CdnUrlOverride = url;
+            Instance._customCdnUrl = url;
         }
 
         public static string GetCdnUrl([CanBeNull] string path = null)
         {
-            if (!string.IsNullOrEmpty(CdnUrlOverride))
+            if (Is(Environments.Custom) && !String.IsNullOrEmpty(Instance._customCdnUrl))
             {
-                return CdnUrlOverride;
+                return Instance._customCdnUrl;
             }
 
-            string cdnBaseURL = Name switch
+            string cdnBaseURL = Instance.environmentName switch
             {
-                "production" => "https://files.accessvr.com",
+                Environments.Production => "https://files.accessvr.com",
                 _ => "https://dev.files.ovr.accessvr.com"
             };
 
             return cdnBaseURL + (path != null ? "/" + path.TrimStart('/') : "");
         }
 
-        public static string GetUrl(string? path = null)
+        public static string GetUrl(string path = null)
         {
             return GetBaseUrl() + (path != null ? "/" + path.TrimStart('/') : "");
         }
 
-        public static string CdnUrl(string? path)
+        public static string CdnUrl(string path)
         {
             return GetCdnUrl() + (path != null ? "/" + path.TrimStart('/') : "");
         }
@@ -375,7 +390,7 @@ namespace AccessVR.OrchestrateVR.SDK
 			return await CreateClient().IsLoggedIn();
 		}
 
-		public async UniTaskVoid Logout()
+		public void Logout()
 		{
 			SetAuthToken(null);
 			SetUser(null);
