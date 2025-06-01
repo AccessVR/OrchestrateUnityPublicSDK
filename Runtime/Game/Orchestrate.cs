@@ -2,10 +2,11 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using JetBrains.Annotations;
 using Cysharp.Threading.Tasks;
 using System.Net.Http;
-using UnityEngine.Windows;
+using Newtonsoft.Json;
 using UnityEngine.Networking;
 
 namespace AccessVR.OrchestrateVR.SDK
@@ -34,6 +35,8 @@ namespace AccessVR.OrchestrateVR.SDK
 
         private LessonData _activeExperience;
         
+	    private List<LessonData> _cachedLessons;
+        
         private UserData _user;
 
         private string _authToken;
@@ -43,12 +46,12 @@ namespace AccessVR.OrchestrateVR.SDK
 	    [CanBeNull]
         public static UserData User => GetUser();
 
-        public static void Set(Environment name)
+        public static void SetEnvironmentName(Environment name)
         {
 	        Instance.environmentName = name;
         }
 
-        public static Environment Get()
+        public static Environment GetEnvironmentName()
         {
 	        return Instance.environmentName;
         }
@@ -160,7 +163,7 @@ namespace AccessVR.OrchestrateVR.SDK
 
         public static HttpClient CreateClient()
         {
-            return HttpClient.Create(GetAuthToken());
+            return HttpClient.Create(GetBaseUrl(), GetAuthToken());
         }
 
         public bool forceOffline = false;
@@ -349,7 +352,7 @@ namespace AccessVR.OrchestrateVR.SDK
 			if (PlayerPrefs.HasKey("userid"))
 			{
 				UserData user = new UserData();
-				user.UserId = PlayerPrefs.GetString("userid");
+				user.UserId = int.Parse(PlayerPrefs.GetString("userid"));
 				user.DisplayName = PlayerPrefs.GetString("displayname");
 				user.UserName = PlayerPrefs.GetString("username");
 				user.Roles = PlayerPrefs.GetString("userroles").Split(',').ToList();
@@ -365,7 +368,7 @@ namespace AccessVR.OrchestrateVR.SDK
 
 					PlayerPrefs.SetString("username", user.UserName);
 					PlayerPrefs.SetString("displayname", user.DisplayName);
-					PlayerPrefs.SetString("userid", user.UserId);
+					PlayerPrefs.SetString("userid", user.UserId.ToString());
 					PlayerPrefs.SetString("userroles", String.Join(",", user.Roles));
 					PlayerPrefs.SetString("userpermissions", String.Join(",", user.Permissions));
 					PlayerPrefs.Save();
@@ -424,109 +427,99 @@ namespace AccessVR.OrchestrateVR.SDK
 
 		public static async UniTask<LessonData> GetOrLoadLesson(LessonDataLookup lookup)
 		{
-			if (!lookup.Preview && HasCachedLesson(lookup.Guid))
+			if (!lookup.Preview && CacheContainsLesson(lookup.Guid))
 			{
-				return LoadCachedLesson(lookup.Guid);
-			}
-			else
-			{
-				return await LoadLesson(lookup);
-			}
+				LessonData lesson = LoadCachedLesson(lookup.Guid);
+
+				// TODO: check for updates
+				
+				return lesson;
+			} 
+			
+			return await LoadLesson(lookup);
 		}
 
+		public static async UniTask<LessonData> LoadLesson(string guid)
+		{
+			return await GetOrLoadLesson(new LessonDataLookup(guid));
+		}
+
+		public static async UniTask<LessonData> LoadLesson(int id)
+		{
+			return await GetOrLoadLesson(new LessonDataLookup(id));
+		}
+		
 		public static async UniTask<LessonData> LoadLesson(LessonDataLookup lookup)
 		{
 			NumberUtils.AssertNotNullOrEmpty(lookup.Id);
-			StringUtils.AssertNotNullOrEmpty(lookup.Guid);
-			
-			return new LessonData();
+			LessonData lesson = await CreateClient().GetLesson(lookup);
+			StringUtils.AssertNotNullOrEmpty(lesson.Guid);
+			WriteCache(lesson.FileData, JsonConvert.SerializeObject(lesson));
+			return lesson;
 		}
 
-		public static bool HasCachedLesson(string guid)
+		public static bool CacheContainsLesson(string guid)
 		{
-			StringUtils.AssertNotNullOrEmpty(guid);
-			
-			return false;
+			LessonData lesson = LessonData.Make(StringUtils.AssertNotNullOrEmpty(guid));
+			foreach (DownloadableFileData file in lesson.GetDownloadableFiles())
+			{
+				if (!CacheContains(file))
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+
+		public static bool CacheContains(LessonData lesson)
+		{
+			StringUtils.AssertNotNullOrEmpty(lesson.Guid);
+			return CacheContainsLesson(lesson.Guid);
+		}
+
+		public static bool CacheContains(AssetData asset)
+		{
+			return CacheContains(asset.FileData);
+		}
+
+		public static bool HasCachedThumbnail(AssetData asset)
+		{
+			return CacheContains(asset.ThumbnailFileData);
+		}
+		
+		public static bool CacheContains(FileData file)
+		{
+			return File.Exists(GetCachePath(file));
 		}
 
 		public static LessonData LoadCachedLesson(string guid)
 		{
-			StringUtils.AssertNotNullOrEmpty(guid);
-			
-			return new LessonData();
+			LessonData lesson = LessonData.Make(StringUtils.AssertNotNullOrEmpty(guid));
+			return JsonConvert.DeserializeObject<LessonData>(ReadCache(lesson.FileData));
 		}
 
-		private static void CacheLesson(LessonData lessonData)
+		public static LessonData LoadCachedLesson(FileData file)
 		{
-			StringUtils.AssertNotNullOrEmpty(lessonData.Guid);
+			return LoadCachedLesson(file.Guid);
 		}
 
 		public static void RemoveCachedLesson(string guid, bool removeContentAndAssets = false)
 		{
 			StringUtils.AssertNotNullOrEmpty(guid);		
 		}
+
+		protected static string GetGuidFromDirectoryPath(string path)
+		{
+			return path.Split('/').Last();
+		}
 		
 		public static List<LessonData> GetCachedLessonList()
 		{
-			return new List<LessonData>();
-			
-			// List<LessonData> cachedLessons = new List<LessonData>();
-			// string path = Application.persistentDataPath;
-			//
-			// foreach (string dir in Directory.GetDirectories(path))
-			// {
-			// 	string guid = dir.Split('/').Last();
-			// 	string contentFile = Path.Combine(dir, "content.json");
-			// 	if (File.Exists(contentFile))
-			// 	{
-			// 		try
-			// 		{
-			// 			string json = File.ReadAllText(contentFile);
-			// 			JObject content = JObject.Parse(json);
-			// 			if (content["name"] != null)
-			// 			{
-			// 				LessonData lesson = new LessonData()
-			// 				{
-			// 					Id = (int) content["id"],
-			// 					Name = content["name"].ToString(),
-			// 					Guid = guid,
-			// 				};
-			// 				
-			// 				string thumbnailPath = content["scenes"]?[0]?["thumbnailAsset"]?["thumbnailPath"].ToString();
-			// 				if (thumbnailPath == null)
-			// 				{
-			// 					thumbnailPath = content["scenes"]?[0]?["skyboxAsset"]?["thumbnailPath"].ToString();
-			// 				}
-			// 				
-			// 				if (thumbnailPath != null)
-			// 				{
-			// 					string thumbnailFile = Path.Combine(dir, thumbnailPath);
-			// 					if (File.Exists(StringFormattingFunctions.ReplaceSpaces(thumbnailFile)))
-			// 					{
-			// 						try
-			// 						{
-			// 							byte[] imageBytes = File.ReadAllBytes(StringFormattingFunctions.ReplaceSpaces(thumbnailFile));
-			// 							lesson.ThumbnailEncoded = Convert.ToBase64String(imageBytes);
-			// 						}
-			// 						catch (Exception e)
-			// 						{
-			// 							Debug.LogError($"Failed to read thumbnail file {thumbnailFile}: {e}");
-			// 						}
-			// 					}
-			// 				}
-			// 				
-			// 				cachedLessons.Add(lesson);
-			// 			}
-			// 		}
-			// 		catch (Exception e)
-			// 		{
-			// 			// Skip invalid files
-			// 			Debug.LogError(e);
-			// 		}
-			// 	}
-			// }
-			//
-			// return cachedLessons.OrderBy(cachedLesson => cachedLesson.Name).ToList();
+			return Directory.GetDirectories(Application.persistentDataPath)
+				 .Select(dir => CacheContainsLesson(GetGuidFromDirectoryPath(dir)) ? LoadCachedLesson(GetGuidFromDirectoryPath(dir)) : null)
+				.Where(lesson => lesson != null)
+				.OrderBy(lesson => lesson.Name)
+				.ToList();
 		}
 
 		public async UniTaskVoid LoadSkybox()
@@ -592,45 +585,78 @@ namespace AccessVR.OrchestrateVR.SDK
 
 		public static async UniTask<Texture2D> LoadTexture2D(FileData file)
 		{
-			return await TextureUtils.LoadTexture2D(file);
+			if (!CacheContains(file))
+			{
+				throw new Exception($"File is not cached, can't load texture: ${file.Name}");
+			}
+			return await TextureUtils.LoadTexture2D(GetCachePath(file));
 		}
 
 		public static string GetCachePath(FileData file)
 		{
 			return file.Parent != null ? 
-                System.IO.Path.Combine(Application.persistentDataPath, file.Parent.Guid, file.Guid, StringUtils.ReplaceSpaces(file.Name)) 
-                : System.IO.Path.Combine(Application.persistentDataPath, file.Guid, StringUtils.ReplaceSpaces(file.Name));
+                Path.Combine(Application.persistentDataPath, file.Parent.Guid, file.Guid, StringUtils.ReplaceSpaces(file.Name)) 
+                : Path.Combine(Application.persistentDataPath, file.Guid, StringUtils.ReplaceSpaces(file.Name));
 		}
 
-		public static bool IsCached(FileData file)
+		public static string GetCachePath(AssetData asset)
 		{
-			return System.IO.File.Exists(file.CachePath);
+			return GetCachePath(asset.FileData);
+		}
+
+		public static string GetTempCachePath(FileData file)
+		{
+			return GetCachePath(file) + ".tmp";
 		}
 
 		public static UnityWebRequest MakeCacheRequest(DownloadableFileData file)
 		{
 			UnityWebRequest request = new UnityWebRequest(file.Url, UnityWebRequest.kHttpVerbGET);
-			System.IO.Directory.CreateDirectory(file.CachePath.Substring(0, file.CachePath.LastIndexOf("/") + 1));
-			if (System.IO.File.Exists(file.TempCachePath))
+			CreateCacheDirectory(file);
+			string tempCachePath = GetTempCachePath(file);
+			if (File.Exists(tempCachePath))
 			{
-				System.IO.File.Delete(file.TempCachePath);
+				File.Delete(tempCachePath);
 			}
-			request.downloadHandler = new DownloadHandlerFile(file.TempCachePath);
+			request.downloadHandler = new DownloadHandlerFile(tempCachePath);
 			return request;
 		}
 
-		public static void FinalizeCache(FileData file)
+		protected static void CreateCacheDirectory(FileData file)
 		{
-			if (file.TempCachePath == null || !File.Exists(file.TempCachePath))
+			string cachePath = GetCachePath(file);
+			Directory.CreateDirectory(cachePath.Substring(0, cachePath.LastIndexOf("/") + 1));
+		}
+
+		public static void WriteCache(FileData file, string contents)
+		{
+			CreateCacheDirectory(file);
+			File.WriteAllText(GetCachePath(file), contents);
+		}
+
+		public static string ReadCache(FileData file)
+		{
+			return File.ReadAllText(GetCachePath(file));
+		}
+
+		public static void FinalizeTempCache(FileData file)
+		{
+			string cachePath = GetCachePath(file);
+			string tempCachePath = GetTempCachePath(file);
+			if (tempCachePath == null || !File.Exists(tempCachePath))
 			{
-				// nothing to do
-				return;
+				if (File.Exists(cachePath))
+				{
+					// nothing to do
+					return;	
+				}
+				throw new InvalidOperationException("File has not be temporarily stored yet and cache does not exist.");
 			}
-			if (System.IO.File.Exists(file.CachePath))
+			if (File.Exists(cachePath))
 			{
-				System.IO.File.Delete(file.CachePath);
+				File.Delete(cachePath);
 			}
-			System.IO.File.Move(file.TempCachePath, file.CachePath);
+			File.Move(tempCachePath, cachePath);
 		}
 
     }

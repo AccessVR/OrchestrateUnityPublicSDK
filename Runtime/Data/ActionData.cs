@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using System.Runtime.Serialization;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace AccessVR.OrchestrateVR.SDK
 {
@@ -13,98 +15,45 @@ namespace AccessVR.OrchestrateVR.SDK
 		ResumePlayback,
 	}
 	
-	public class ActionData
+	public class ActionData: Data
 	{
-		public ActionType type;
-		public int sceneId;
-		public float timestamp = 0.0f; // same as default value, but helps with clarity
-		public AbstractEventData eventData;
+		[JsonProperty("id")] private string Id;
+		[JsonProperty("sceneId")] private int? _sceneId;
+		[JsonProperty("timeStamp")] public float Timestamp;
+		[JsonProperty("event")] public JObject _eventData;
+		[JsonProperty("type")] private int _type;
 		
-		public ActionData()
-		{
-			type = ActionType.None;
-		}
+		public int SceneId => _sceneId ?? -1;
+		
+		[JsonIgnore] public ActionType Type = ActionType.None;
+		[JsonIgnore] public EventData EventData;
 
-		public ActionData(JObject json, SceneData parentScene)
+		[OnDeserialized]
+		public void OnDeserialized(StreamingContext context)
 		{
-			LoadData(json, parentScene);
-		}
-		
-		private void LoadData(JObject json, SceneData parentScene)
-		{
-			switch (json["type"].Value<int>())
+			Type = _type switch
 			{
-				default:
-					type = ActionType.None;
-					break;
-				case 1:
-					type = ActionType.CompleteLesson;
-					break;
-				case 2:
-					type = ActionType.PreviousScene;
-					break;
-				case 3:
-					type = ActionType.GoToScene;
-					LoadGoToSceneData(json, parentScene);
-					break;
-				case 4:
-					type = ActionType.ShowCard;
-					LoadShowCardData(json, parentScene);
-					break;
-				case 5:
-					type = ActionType.ReplayCurrentScene;
-					LoadReplayCurrentSceneData(parentScene);
-					break;
-				case 6:
-					type = ActionType.ResumePlayback;
-					break;
+				1 => ActionType.CompleteLesson,
+				2 => ActionType.PreviousScene,
+				3 => ActionType.GoToScene,
+				4 => ActionType.ShowCard,
+				5 => ActionType.ReplayCurrentScene,
+				6 => ActionType.ResumePlayback,
+				_ => ActionType.None
+			};
+
+			if (_eventData != null)
+			{
+				EventData = EventDataFactory.Make(_eventData, true);
 			}
 		}
 
-		private void LoadShowCardData(JObject json, SceneData parentScene)
+		public override void SetParentScene(SceneData scene)
 		{
-			if (json["event"] != null && json["event"].Type != JTokenType.Null)
-			{
-				switch (json["event"]["eventType"]?.Value<int>())
-				{
-					default:
-						eventData = null;
-						break;
-					case 1:
-						eventData = json["event"].ToObject<MediaEventData>();
-						break;
-					case 2:
-						eventData = json["event"].ToObject<InfoEventData>();
-						break;
-					case 3:
-						eventData = json["event"].ToObject<QuestionEventData>();
-						break;
-					case 5:
-						eventData = json["event"].ToObject<HotspotEventData>();
-						break;
-					case 6:
-						eventData = json["event"].ToObject<MediaEventData>();
-						break;
-				}
-
-				if (eventData != null) 
-				{
-					eventData.isActionEvent = true;
-				}
-			}
-		}
-		
-
-		private void LoadGoToSceneData(JObject json, SceneData parentScene)
-		{
-			sceneId = json["sceneId"]?.Value<int>() ?? 0;
-			timestamp = json["timeStamp"]?.Value<float>() ?? 0f;
+			base.SetParentScene(scene);
+			EventData?.SetParentScene(scene);
 		}
 
-		private void LoadReplayCurrentSceneData(SceneData parentScene)
-		{
-			sceneId = parentScene.Id;
-			timestamp = 0f;
-		}
 	}
+	
 }

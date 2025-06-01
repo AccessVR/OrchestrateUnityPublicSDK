@@ -10,7 +10,7 @@ namespace AccessVR.OrchestrateVR.SDK
 
         public static void RegisterType(string eventDataType, GameObject eventViewPrefab)
         {
-            Type abstractEventData = typeof(AbstractEventData);
+            Type abstractEventData = typeof(EventData);
             if (!Type.GetType(eventDataType).IsAssignableFrom(abstractEventData)) 
             {
                 throw new Exception($"Event data type {eventDataType} does not inherit from AbstractEventData");
@@ -19,7 +19,7 @@ namespace AccessVR.OrchestrateVR.SDK
             registry[eventDataType] = eventViewPrefab;
         }
 
-        public static IEventView CreateView(AbstractEventData eventData)
+        public static IEventView Make(EventData eventData)
         {
             if (registry.TryGetValue(eventData.GetType().Name, out GameObject eventViewPrefab))
             {

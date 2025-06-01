@@ -1,14 +1,9 @@
-using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 namespace AccessVR.OrchestrateVR.SDK
 {
     public class UnityRichText
     {
-        public string Content;
-        
-        public UnityRichText(JObject json)
-        {
-            Content = (string) json["content"];
-        }
+        [JsonProperty("content")] public string Content;
     }
 }

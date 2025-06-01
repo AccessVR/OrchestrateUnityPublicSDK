@@ -2,7 +2,7 @@ namespace AccessVR.OrchestrateVR.SDK
 {
     public interface IEventView
     {
-        void LoadData(AbstractEventData eventData);
+        void LoadData(EventData eventData);
         void UpdateLayout();
         void Show();
         void Hide();

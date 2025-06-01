@@ -1,44 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using UnityEngine;
+using System.Runtime.Serialization;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace AccessVR.OrchestrateVR.SDK
 {
     [Serializable]
-    public class AnswerData
-    {
-        [JsonProperty("id")] public string Id = "0";
-        [JsonProperty("answerText")] public string Text;
-        [JsonProperty("correctAnswer")] public bool IsCorrect = false;
-        [JsonProperty("action")] public ActionData action;
-
-        public AnswerData(string text, bool isCorrect)
-        {
-            action = new ActionData();
-            Text = text;
-            IsCorrect = isCorrect;
-        }
-        public AnswerData(JObject json, SceneData parentScene)
-        {
-            action = new ActionData();
-
-            if (json["id"] != null)
-                Id = (string)json["id"];
-            if (json["answerText"] != null)
-                Text = (string)json["answerText"];
-            if (json["correctAnswer"] != null)
-                IsCorrect = (bool)json["correctAnswer"];
-
-
-            if (json["action"] != null)
-                action = new ActionData(json["action"].ToObject<JObject>(), parentScene);
-        }
-    }
-
-    [Serializable]
-    public class QuestionData
+    public class QuestionData: Data
     {
         public enum QuestionTypeOptions
         {
@@ -47,72 +15,69 @@ namespace AccessVR.OrchestrateVR.SDK
         }
 
         [JsonProperty("id")] public string Id = "0";
-        [JsonProperty("questionType")] public QuestionTypeOptions QuestionType;
         [JsonProperty("text")] public string Text;
         [JsonProperty("assessable")] public bool Assessable = true;
         [JsonProperty("remediate")] public bool Remediate = true;
         [JsonProperty("answers")] public List<AnswerData> Answers;
-
+        [JsonProperty("questionType")] private int _questionType;
+        
+        [JsonIgnore] public QuestionTypeOptions QuestionType;
+        
         public QuestionData()
         {
             Answers = new List<AnswerData>();
             QuestionType = QuestionTypeOptions.Single;
             Text = "This is a placeholder question.";
-
-            Answers.Add(new AnswerData("Temporary Answer 1 (Correct)", true));
-            Answers.Add(new AnswerData("Temporary Answer 2", false));
+            AddPlaceholderAnswers();
         }
 
-        public QuestionData(JObject json, SceneData parentScene)
+        private void AddPlaceholderAnswers()
         {
-            Answers = new List<AnswerData>();
-            if (json["id"] != null)
-                Id = (string)json["id"];
-            if (json["questionType"] != null)
+            Answers.Add(new AnswerData
             {
-                switch ((int)json["questionType"])
-                {
-                    default:
-                    case 0:
-                        QuestionType = QuestionTypeOptions.Single;
-                        break;
-                    case 1:
-                        QuestionType = QuestionTypeOptions.Multiple;
-                        break;
-                }
-            }
-
-
-            if (json["text"] != null)
-                Text = (string)json["text"];
-
-            if (json["remediate"] != null)
-                Remediate = (bool)json["remediate"];
-
-            if (json["assessable"] != null)
-                Assessable = (bool)json["assessable"];
-
-
-            if (json["answers"] != null)
+                Text = "Temporary Answer 1 (Correct)",
+                IsCorrect = true
+            });
+            
+            Answers.Add(new AnswerData
             {
-                foreach (JToken token in (JArray)json["answers"])
-                {
-                    Answers.Add(new AnswerData((JObject)token, parentScene));
-                }
-            }
+                Text = "Temporary Answer 2",
+                IsCorrect = false
+            });
+        }
+
+        [OnDeserialized]
+        public void OnDeserialized(StreamingContext context)
+        {
+            QuestionType = _questionType switch
+            {
+                1 => QuestionTypeOptions.Multiple,
+                _ => QuestionTypeOptions.Single
+            };
 
             if (Answers.Count <= 0)
             {
-                Answers.Add(new AnswerData("Temporary Answer 1 (Correct)", true));
-                Answers.Add(new AnswerData("Temporary Answer 2", false));
+                AddPlaceholderAnswers();
             }
+        }
+        
+        public override void SetParentScene(SceneData scene)
+        {
+            base.SetParentScene(scene);
+            Answers.ForEach(answer => answer.SetParentScene(scene));
         }
     }
     
-    public class QuestionEventData : AbstractEventData
+    public class QuestionEventData : EventData
     {
         [JsonProperty("questions")] public List<QuestionData> Questions;
 
         public override bool ShouldPauseForAcknowledgement() => true;
+
+        public override void SetParentScene(SceneData scene)
+        {
+            base.SetParentScene(scene);
+            Questions.ForEach(question => question.SetParentScene(scene));
+        }
     }
 }

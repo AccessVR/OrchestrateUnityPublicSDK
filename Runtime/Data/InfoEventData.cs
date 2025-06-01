@@ -1,10 +1,6 @@
-﻿using System.Collections.Generic;
-using System;
-using UnityEngine;
-
-namespace AccessVR.OrchestrateVR.SDK
+﻿namespace AccessVR.OrchestrateVR.SDK
 {
-    public class InfoEventData : AbstractEventData
+    public class InfoEventData : EventData
     {
         
     }

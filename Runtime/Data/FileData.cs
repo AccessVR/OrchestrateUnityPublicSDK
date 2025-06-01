@@ -1,5 +1,4 @@
-using System.IO;
-using UnityEngine;
+using JetBrains.Annotations;
 
 namespace AccessVR.OrchestrateVR.SDK
 {
@@ -21,22 +20,14 @@ namespace AccessVR.OrchestrateVR.SDK
 
         public int Retries = 0;
 
-        public string CachePath => Orchestrate.GetCachePath(this);
-            
-        public string TempCachePath => CachePath + ".tmp";
-
-        public bool IsCached => Orchestrate.IsCached(this);
-
-        public FileData(string guid, string name)
+        public FileData([NotNull] string guid, [NotNull] string name)
         {
             _guid = guid;
             _name = name;
         }
         
-        public FileData(string guid, string name, FileData parent)
+        public FileData([NotNull] string guid, [NotNull] string name, [NotNull] FileData parent) : this(guid, name)
         {
-            _guid = guid;
-            _name = name;
             _parent = parent;
         }
         

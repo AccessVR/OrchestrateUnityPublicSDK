@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.Serialization;
 using UnityEngine.SceneManagement;
 using Newtonsoft.Json;
-using UnityEngine;
+using Newtonsoft.Json.Linq;
 
 namespace AccessVR.OrchestrateVR.SDK
 {
@@ -13,63 +15,86 @@ namespace AccessVR.OrchestrateVR.SDK
         Pano
     }
     
-    public class SceneData : AbstractData
+    public class SceneData : Data, IDownloadable
     {
         [JsonProperty("id")] public int Id;
         [JsonProperty("name")] public string Name;
         [JsonProperty("description")] public string Description;
         [JsonProperty("course")] public string Course;
         [JsonProperty("skyboxAsset")] public AssetData Skybox;
-        [JsonProperty("assets")] public List<AssetData> Assets;
         [JsonProperty("localAssetPath")] public string LocalAssetPath;
-        [JsonProperty("lessonGuid")] public string LessonGuid;
-        [JsonProperty("cachedJson")] public string CachedJson;
-        [JsonProperty("initialRotation")] public Vector3 InitialRotation = new Vector3(0,0,90);
-        [JsonProperty("initialLatitude")] public float InitialLatitude = 0;
-        [JsonProperty("initialLongitude")] public float InitialLongitude = 0;
-        [JsonProperty("initialQuaternion")] public Quaternion InitialQuaternion = new Quaternion(0,0,0,0);
-        [JsonProperty("initialRot2")] public Vector3 InitialRot2 = new Vector3(0, 0, 90);
+        
         [JsonProperty("currentTime")] public float CurrentTime = 0.0f;
         [JsonProperty("startTime")] public float StartTime = 0.0f;
         [JsonProperty("endTime")] public float EndTime = 0.0f;
         [JsonProperty("duration")] public float Duration = 0.0f;
-        [JsonProperty("isLoaded")] public bool IsLoaded = false;
-        [JsonProperty("isInitial")] public bool IsInitial = false;
+        
         [JsonProperty("showInSceneList")] public bool ShowInSceneList = true;
         [JsonProperty("thumbnailAsset")] public AssetData Thumbnail;
-        [JsonProperty("endAction")] public ActionData endAction;
+        [JsonProperty("endAction")] public ActionData EndAction;
         [JsonProperty("thumbnailURL")] public string thumbnailURL;
-        [JsonProperty("timedEvents")] public List<AbstractEventData> TimedEvents;
-        [JsonProperty("screenType")] public ScreenType screenType;
+        [JsonProperty("timedEvents")] private List<JObject> _timedEvents;
+        [JsonProperty("initialView")] public InitialViewData InitialView;
+        [JsonProperty("screenType")] private int _screenType;
 
-        [JsonIgnore] public Scene scene;
-        
-        // TODO: why is this here?
-        // [JsonIgnore] public ViewerController controller;
-        
-        public bool IsCached
+        [JsonIgnore] public List<EventData> TimedEvents;
+        [JsonIgnore] private LessonData _parentLesson;
+
+        [JsonIgnore] public List<EventData> SortedTimedEvents
         {
             get
             {
-                bool cached = true;
-                if (Assets != null)
-                {
-                    foreach(AssetData asset in Assets)
-                    {
-                        if (!asset.IsCached())
-                        {
-                            cached = false;
-                        }
-                    }
-                }
-                return cached;    
+                List<EventData> sortedTimedEvents = new List<EventData>(TimedEvents ?? new());
+                sortedTimedEvents.Sort((e1, e2) => e1.StartTime < e2.StartTime ? -1 : 1);
+                return sortedTimedEvents;
             }
         }
+        
+        [JsonIgnore] public ScreenType screenType;
+        [JsonIgnore] public Scene scene;
 
-        public void AddAsset(AssetData asset)
+        [OnDeserialized]
+        public void OnDeserialized(StreamingContext context)
         {
-            if (Assets == null) Assets = new List<AssetData>();
-            Assets.Add(asset);
+            screenType = _screenType switch
+            {
+                1 => ScreenType.Sphere180,
+                2 => ScreenType.Big,
+                3 => ScreenType.Pano,
+                _ => ScreenType.Sphere360
+            };
+            
+            Skybox?.SetParentScene(this);
+
+            TimedEvents = _timedEvents.Select(timedEvent => EventDataFactory.Make(timedEvent, this)).ToList();
+            
+            EndAction?.SetParentScene(this);
+        }
+
+        public void SetParentLesson(LessonData lesson)
+        {
+            _parentLesson = lesson;
+        }
+
+        public LessonData GetParentLesson()
+        {
+            return _parentLesson;
+        }
+
+        public List<DownloadableFileData> GetDownloadableFiles()
+        {
+            List<DownloadableFileData> list = new List<DownloadableFileData>
+            {
+                Skybox?.FileData,
+                Thumbnail?.FileData,
+            };
+            
+            list.AddRange(TimedEvents
+                .Select(timedEvent => timedEvent.GetDownloadableFiles())
+                .SelectMany(fileList => fileList)
+                .ToList());
+
+            return list;
         }
 
         public bool HasThumbnail()

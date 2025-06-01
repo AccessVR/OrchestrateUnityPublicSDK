@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -10,21 +9,28 @@ namespace AccessVR.OrchestrateVR.SDK
 	
 	public class Downloader : GenericSingleton<Downloader>
 	{
-		private const int MAX_RETRIES = 3;
+		private const int MaxRetries = 3;
 		
-		private List<DownloadJob> queue = new();
+		private List<DownloadJob> _queue = new();
 
-		private UnityWebRequest request;
+		private UnityWebRequest _request;
 
-		public void Download(DownloadJob job)
+		public static DownloadJob Download(IDownloadable downloadable)
 		{
-			queue.Add(job);
-			StartCoroutine(StartNextDownload(job));
+			DownloadJob job = new DownloadJob(downloadable);
+			Download(job);
+			return job;
+		}
+		
+		public static void Download(DownloadJob job)
+		{
+			Instance._queue.Add(job);
+			Instance.StartCoroutine(Instance.StartNextDownload(job));
 		}
 
 		private void Update()
 		{
-			foreach (DownloadJob job in queue)
+			foreach (DownloadJob job in _queue)
 			{
 				if (!job.IsCanceled)
 				{
@@ -62,7 +68,7 @@ namespace AccessVR.OrchestrateVR.SDK
 				{
 					try
 					{
-						Orchestrate.FinalizeCache(file);
+						Orchestrate.FinalizeTempCache(file);
 						Debug.Log("Downloaded " + file);
 					}
 					catch (IOException e)
@@ -77,7 +83,7 @@ namespace AccessVR.OrchestrateVR.SDK
 					else if (!job.IsCanceled)
 					{
 						job.OnComplete?.Invoke(job);
-						queue.Remove(job);
+						_queue.Remove(job);
 					}
 					else
 					{
@@ -88,7 +94,7 @@ namespace AccessVR.OrchestrateVR.SDK
 			else
 			{
 				job.OnComplete?.Invoke(job);
-				queue.Remove(job);
+				_queue.Remove(job);
 			}
 		}
 
@@ -98,7 +104,7 @@ namespace AccessVR.OrchestrateVR.SDK
 			{
 				job.IsCanceled = true;
 				job.OnCancelled?.Invoke(job);
-				queue.Remove(job);
+				_queue.Remove(job);
 			});
 			
 			// TODO: RemoveCorruptedDownload(downloadInfo);
@@ -106,7 +112,7 @@ namespace AccessVR.OrchestrateVR.SDK
 
 		private void OnDownloadError(DownloadJob job, FileData file, Error error)
 		{
-			if (file.Retries < MAX_RETRIES)
+			if (file.Retries < MaxRetries)
 			{
 				file.Retries++;
 				Debug.LogError("Retrying " + file);
@@ -124,7 +130,7 @@ namespace AccessVR.OrchestrateVR.SDK
 		private void FireJobFailure(DownloadJob job, Error error)
 		{
 			job.OnFailure?.Invoke(job, error);
-			queue.Remove(job);
+			_queue.Remove(job);
 		}
 
 		public static bool addListener(string guid, IDownloadJobListener listener)
@@ -135,6 +141,7 @@ namespace AccessVR.OrchestrateVR.SDK
 				job.OnFailure += listener.OnDownloadJobFailure;
 				job.OnComplete += listener.OnDownloadJobComplete;
 				job.OnProgress += listener.OnDownloadJobProgress;
+				job.OnCancelled += listener.OnDownloadJobCancelled;
 				return true;
 			}
 			return false;
@@ -148,19 +155,18 @@ namespace AccessVR.OrchestrateVR.SDK
 				job.OnFailure -= listener.OnDownloadJobFailure;
 				job.OnComplete -= listener.OnDownloadJobComplete;
 				job.OnProgress -= listener.OnDownloadJobProgress;
+				job.OnCancelled -= listener.OnDownloadJobCancelled;
 			}
 		}
 		
 		private DownloadJob GetJob(string guid)
 		{
-			return queue.Find(job => job.Guid == guid);
+			return _queue.Find(job => job.Guid == guid);
 		}
 
 		private List<DownloadJob> GetJobs(string guid)
 		{
-			return queue.FindAll(job => job.Guid == guid);
+			return _queue.FindAll(job => job.Guid == guid);
 		}
 	}
 }
-
-

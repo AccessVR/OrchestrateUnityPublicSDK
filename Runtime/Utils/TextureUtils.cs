@@ -24,15 +24,6 @@ namespace AccessVR.OrchestrateVR.SDK
 	            return new Texture2D(1, 1);
             }
 		}
-
-		public static async UniTask<Texture2D> LoadTexture2D(FileData file)
-		{
-			if (!file.IsCached)
-			{
-				throw new Exception($"File is not cached: ${file.Name}");
-			}
-			return await LoadTexture2D(file.CachePath);
-		}
 	}
 }
 

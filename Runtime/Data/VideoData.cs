@@ -1,8 +1,6 @@
-﻿using UnityEngine;
-
-namespace AccessVR.OrchestrateVR.SDK
+﻿namespace AccessVR.OrchestrateVR.SDK
 {
-    public class VideoEventData : AbstractEventData
+    public class VideoEventData : EventData
     {
         
     }

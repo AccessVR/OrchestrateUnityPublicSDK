@@ -2,49 +2,74 @@ using System;
 using Newtonsoft.Json;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.Networking;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace AccessVR.OrchestrateVR.SDK
 {
-    public class AssetData : AbstractData, IDownloadable
+    public class AssetData : Data, IDownloadable
     {
         [JsonProperty("assetTypeId")] public int assetTypeId;
-        [JsonProperty("videoTypeId")] public int videoTypeId;
+        [JsonProperty("videoTypeId")] public int? videoTypeId;
         [JsonProperty("displayedName")] public string displayedName;
         [JsonProperty("fileName")] public string fileName;
         [JsonProperty("portrait")] public bool portrait = false;
         [JsonProperty("width")] public int? width;
         [JsonProperty("height")] public int? height;
         [JsonProperty("path")] public string path;
-        [JsonProperty("localPath")] public string localPath;
         [JsonProperty("originalPath")] public string originalPath;
         [JsonProperty("thumbnailPath")] public string thumbnailPath;
-        [JsonProperty("thumbnailLocalPath")] public string thumbnailLocalPath;
 
-        [JsonIgnore] public SceneData scene;
+        [JsonIgnore] private SceneData _parentScene;
         
         private Texture2D _texture;
         
         private Texture2D _thumbnailTexture;
         
         public bool HasThumbnail() => (IsImage() || IsVideo()) && !String.IsNullOrEmpty(thumbnailPath);
+        public bool IsAudio() => assetTypeId == 4;
         public bool IsImage() => assetTypeId == 5;
         public bool IsVideo() => assetTypeId == 6;
+        
+        public bool IsAudioOrVideo() => IsAudio() || IsVideo();
 
         public DownloadableFileData FileData
         {
             get
             {
-                string mainPath = path;
+                string assetPath = path;
+                
                 if (IsVideo() && originalPath != null)
                 {
-                    mainPath = originalPath;
+                    assetPath = originalPath;
                 }
-                return new DownloadableFileData(Orchestrate.CdnUrl(mainPath), AssetPath.Make(mainPath).Guid,
-                    path, LessonData.Make(scene?.LessonGuid).FileData);
+
+                if (_parentScene?.GetParentLesson() != null)
+                {
+                    return new DownloadableFileData(
+                        Orchestrate.CdnUrl(assetPath), 
+                        AssetPath.Make(assetPath).Guid, 
+                        path, 
+                        _parentScene.GetParentLesson().FileData);    
+                }
+                else
+                {
+                    return new DownloadableFileData(
+                        Orchestrate.CdnUrl(assetPath), 
+                        AssetPath.Make(assetPath).Guid, 
+                        path);    
+                }
+                
             }
+        }
+
+        public void SetParentScene(SceneData scene)
+        {
+            _parentScene = scene;
+        }
+
+        public SceneData GetParentScene(SceneData scene)
+        {
+            return _parentScene;
         }
 
         public DownloadableFileData ThumbnailFileData
@@ -53,8 +78,21 @@ namespace AccessVR.OrchestrateVR.SDK
             {
                 if (HasThumbnail())
                 {
-                    return new DownloadableFileData(Orchestrate.CdnUrl(thumbnailPath), AssetPath.Make(thumbnailPath).Guid,
-                        thumbnailPath, LessonData.Make(scene?.LessonGuid).FileData);
+                    if (_parentScene?.GetParentLesson() != null)
+                    {
+                        return new DownloadableFileData(
+                            Orchestrate.CdnUrl(thumbnailPath), 
+                            AssetPath.Make(thumbnailPath).Guid, 
+                            path, 
+                            _parentScene.GetParentLesson().FileData);    
+                    }
+                    else
+                    {
+                        return new DownloadableFileData(
+                            Orchestrate.CdnUrl(thumbnailPath), 
+                            AssetPath.Make(thumbnailPath).Guid, 
+                            path);    
+                    }
                 }
                 return null;
             }
@@ -69,11 +107,6 @@ namespace AccessVR.OrchestrateVR.SDK
                 files.Add(ThumbnailFileData);
             }
             return files;
-        }
-            
-        public bool IsCached()
-        {
-            return GetDownloadableFiles().Aggregate(true, (isCached, file) => isCached && file.IsCached);
         }
         
         public async UniTask<Texture2D> LoadTexture()

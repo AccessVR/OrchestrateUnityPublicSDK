@@ -8,11 +8,11 @@ namespace AccessVR.OrchestrateVR.SDK
 	{
 		public string Guid;
 		
-		private List<DownloadableFileData> _files = new List<DownloadableFileData>();
+		private readonly List<DownloadableFileData> _files = new List<DownloadableFileData>();
 
-		public DownloadableFileData NextFileData => _files.Find(file => !file.IsCached);
+		public DownloadableFileData NextFileData => _files.Find(file => !Orchestrate.CacheContains(file));
 		
-		private int FilesDownloaded => _files.FindAll(file => file.IsCached).Count;
+		private int FilesDownloaded => _files.FindAll(Orchestrate.CacheContains).Count;
 		public bool IsComplete => _files.Count == FilesDownloaded;
 		
 		public bool IsCanceled = false;
@@ -30,6 +30,14 @@ namespace AccessVR.OrchestrateVR.SDK
 		public void AddFile(DownloadableFileData file) => _files.Add(file);
 		
 		public void RemoveFile(DownloadableFileData file) => _files.Remove(file);
+
+		public IDownloadable Downloadable { get; }
+
+		public DownloadJob(IDownloadable downloadable)
+		{
+			Downloadable = downloadable;
+			downloadable.GetDownloadableFiles().ForEach(file => AddFile(file));
+		}
 		
 		public void ReportProgress()
 		{
