@@ -1,12 +1,12 @@
+using System.Linq;
+
 namespace AccessVR.OrchestrateVR.SDK
 {
     public class AssetPath
     {
-        private string _path;
-
         private string[] _parts;
 
-        public string Environment => _parts[0];
+        public string Env => _parts[0];
 
         public string Guid => _parts[1];
 
@@ -14,13 +14,17 @@ namespace AccessVR.OrchestrateVR.SDK
 
         private AssetPath(string path)
         {
-            _path = path;
             _parts = path.Split('/');
         }
 
         public static AssetPath Make(string path)
         {
             return new AssetPath(path);
+        }
+
+        public override string ToString()
+        {
+            return string.Join('/', _parts);
         }
     }
 }

@@ -1,12 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
 namespace AccessVR.OrchestrateVR.SDK
 {
-	
 	public class Downloader : GenericSingleton<Downloader>
 	{
 		private const int MaxRetries = 3;
@@ -14,52 +15,57 @@ namespace AccessVR.OrchestrateVR.SDK
 		private List<DownloadJob> _queue = new();
 
 		private UnityWebRequest _request;
-
-		public static DownloadJob Download(IDownloadable downloadable)
+		
+		public static UniTask<DownloadJob> Download(IDownloadable downloadable, IDownloadJobListener listener, CancellationToken? cancellationToken = null)
 		{
 			DownloadJob job = new DownloadJob(downloadable);
-			Download(job);
-			return job;
+			job.AddListener(listener);
+			return Download(job, cancellationToken);
 		}
 		
-		public static void Download(DownloadJob job)
+		public static UniTask<DownloadJob> Download(IDownloadable downloadable, CancellationToken? cancellationToken = null)
 		{
-			Instance._queue.Add(job);
-			Instance.StartCoroutine(Instance.StartNextDownload(job));
+			return Download(new DownloadJob(downloadable), cancellationToken);
 		}
-
-		private void Update()
+		
+		private static UniTask<DownloadJob> Download(DownloadJob job, CancellationToken? cancellationToken = null)
 		{
-			foreach (DownloadJob job in _queue)
-			{
-				if (!job.IsCanceled)
-				{
-					job.ReportProgress();
-				}
-			}
+		    Instance._queue.Add(job);
+		    Instance.StartCoroutine(Instance.StartNextDownload(job));
+		    return job.Task;
 		}
 
 		private IEnumerator StartNextDownload(DownloadJob job)
 		{
 			if (Orchestrate.Offline)
 			{
-				FireJobFailure(job, Error.InternetRequired);
+				job.FireFailure(Error.InternetRequired);
 			}
 
-			if (job.IsCanceled) yield break;
+			if (job.IsCancelled) yield break;
 			
 			DownloadableFileData file = job.NextFileData;
 			
 			if (file != null)
 			{
 				bool error = false;
-				
-				job.CurrentRequest = Orchestrate.MakeCacheRequest(file);
-					
-				yield return job.CurrentRequest.SendWebRequest();
-					
-				if (job.CurrentRequest.result != UnityWebRequest.Result.Success)
+				UnityWebRequest request  = Orchestrate.MakeCacheRequest(file);
+				UnityWebRequestAsyncOperation operation = request.SendWebRequest();
+
+				while (!operation.isDone)
 				{
+					if (job.IsCancelled)
+					{
+						request.Abort();
+						yield break;
+					}
+					job.FireProgress(request.downloadProgress);
+					yield return null;
+				}
+					
+				if (request.result != UnityWebRequest.Result.Success)
+				{
+					// TODO: get more information about the failure
 					OnDownloadError(job, file, new Error($"Failed to download File {file.Url}"));
 					error = true;
 				}
@@ -69,31 +75,27 @@ namespace AccessVR.OrchestrateVR.SDK
 					try
 					{
 						Orchestrate.FinalizeTempCache(file);
-						Debug.Log("Downloaded " + file);
+						Debug.Log($"Downloaded {file}");
+						
+						if (!job.IsComplete && !job.IsCancelled)
+						{
+							StartCoroutine(StartNextDownload(job));
+						}
+						else if (!job.IsCancelled)
+						{
+							job.TryFireComplete();
+							_queue.Remove(job);
+						}
 					}
 					catch (IOException e)
 					{
-						FireJobFailure(job, new Error(e));
-					}
-					
-					if (!job.IsComplete && !job.IsCanceled)
-					{
-						StartCoroutine(StartNextDownload(job));
-					}
-					else if (!job.IsCanceled)
-					{
-						job.OnComplete?.Invoke(job);
-						_queue.Remove(job);
-					}
-					else
-					{
-						job.OnCancelled?.Invoke(job);
+						job.FireFailure(new Error(e));
 					}
 				}
 			}
 			else
 			{
-				job.OnComplete?.Invoke(job);
+				job.TryFireComplete();
 				_queue.Remove(job);
 			}
 		}
@@ -102,12 +104,9 @@ namespace AccessVR.OrchestrateVR.SDK
 		{
 			GetJobs(guid).ForEach(job =>
 			{
-				job.IsCanceled = true;
-				job.OnCancelled?.Invoke(job);
+				job.Cancel();
 				_queue.Remove(job);
 			});
-			
-			// TODO: RemoveCorruptedDownload(downloadInfo);
 		}
 
 		private void OnDownloadError(DownloadJob job, FileData file, Error error)
@@ -120,42 +119,7 @@ namespace AccessVR.OrchestrateVR.SDK
 			}
 			else
 			{
-				// TODO: log the file
-				
-				FireJobFailure(job, new Error(ErrorType.TooManyRetries));
-			}
-		}
-		
-
-		private void FireJobFailure(DownloadJob job, Error error)
-		{
-			job.OnFailure?.Invoke(job, error);
-			_queue.Remove(job);
-		}
-
-		public static bool addListener(string guid, IDownloadJobListener listener)
-		{
-			DownloadJob job = Instance.GetJob(guid);
-			if (job != null)
-			{
-				job.OnFailure += listener.OnDownloadJobFailure;
-				job.OnComplete += listener.OnDownloadJobComplete;
-				job.OnProgress += listener.OnDownloadJobProgress;
-				job.OnCancelled += listener.OnDownloadJobCancelled;
-				return true;
-			}
-			return false;
-		}
-		
-		public static void removeListener(string guid, IDownloadJobListener listener)
-		{
-			DownloadJob job = Instance.GetJob(guid);
-			if (job != null)
-			{
-				job.OnFailure -= listener.OnDownloadJobFailure;
-				job.OnComplete -= listener.OnDownloadJobComplete;
-				job.OnProgress -= listener.OnDownloadJobProgress;
-				job.OnCancelled -= listener.OnDownloadJobCancelled;
+				job.FireFailure(new Error(ErrorType.TooManyRetries));
 			}
 		}
 		

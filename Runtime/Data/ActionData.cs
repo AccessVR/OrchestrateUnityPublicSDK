@@ -1,4 +1,5 @@
-﻿using System.Runtime.Serialization;
+﻿using System.Collections.Generic;
+using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -15,7 +16,7 @@ namespace AccessVR.OrchestrateVR.SDK
 		ResumePlayback,
 	}
 	
-	public class ActionData: Data
+	public class ActionData: Data, IDownloadable
 	{
 		[JsonProperty("id")] private string Id;
 		[JsonProperty("sceneId")] private int? _sceneId;
@@ -46,6 +47,11 @@ namespace AccessVR.OrchestrateVR.SDK
 			{
 				EventData = EventDataFactory.Make(_eventData, true);
 			}
+		}
+
+		public List<DownloadableFileData> GetDownloadableFiles()
+		{
+			return EventData?.GetDownloadableFiles() ?? new();
 		}
 
 		public override void SetParentScene(SceneData scene)

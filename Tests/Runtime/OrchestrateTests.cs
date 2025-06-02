@@ -12,7 +12,7 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
 {
     public class Config
     {
-        [JsonProperty("environmentName")] private string _env;
+        [JsonProperty("environment")] private string _environment;
         [JsonProperty("userId")] public int UserId;
         [JsonProperty("userName")] public string UserName;
         [JsonProperty("authToken")] public string AuthToken;
@@ -20,12 +20,12 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
         [JsonProperty("cdnUrl")] public string CdnUrl;
         [JsonProperty("lesson")] public LessonDataLookup Lesson;
         
-        public Environment EnvironmentName;
+        public Environment Environment;
         
         [OnDeserialized]
         private void OnDeserialized(StreamingContext context)
         {
-            EnvironmentName = (Environment) System.Enum.Parse(typeof(Environment), _env);
+            Environment = (Environment) System.Enum.Parse(typeof(Environment), _environment);
         }
     }
     
@@ -48,14 +48,16 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
 
         public OrchestrateTests()
         {
-            Orchestrate.SetEnvironmentName(Config.EnvironmentName); 
+            Orchestrate.Logout();
+            Orchestrate.SetEnvironment(Config.Environment); 
             Orchestrate.SetAuthToken(Config.AuthToken);
         }
         
         [Test]
         public void TestConfig()
         {
-            Assert.AreEqual("Local", Config.EnvironmentName.ToString());
+            Assert.AreEqual(Config.Environment, Orchestrate.GetEnvironment());;
+            Assert.AreEqual("Local", Config.Environment.ToString());
             Assert.AreEqual("https://ovr.avr.ngrok.io", Orchestrate.GetBaseUrl());
             Assert.IsNotEmpty(Config.AuthToken);
             Assert.AreEqual(Config.AuthToken, Orchestrate.GetAuthToken());
@@ -65,9 +67,9 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
         }
 
         [UnityTest]
-        public IEnumerator TestGetUser() => UniTask.ToCoroutine(async () =>
+        public IEnumerator TestLoadUser() => UniTask.ToCoroutine(async () =>
         {
-            UserData user = await Orchestrate.CreateClient().GetUser();
+            UserData user = await Orchestrate.LoadUser();
             Assert.AreEqual(Config.UserId, user.UserId);
             Assert.AreEqual(Config.UserName, user.UserName);
         });
@@ -77,34 +79,32 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
             Assert.AreEqual(Config.Lesson.Guid, lesson.Guid);
             
             // Scene count
-            Assert.AreEqual(lesson.Scenes.Count, 5);
-            
-            SceneData scene1 = lesson.Scenes[0];
+            Assert.AreEqual(5, lesson.Scenes.Count);
             
             // Scene names
-            Assert.AreEqual("Start", scene1.Name);
+            Assert.AreEqual("Start", lesson.InitialScene.Name);
             Assert.AreEqual("Education", lesson.Scenes[1].Name);
             Assert.AreEqual("Law Enforcement", lesson.Scenes[2].Name);
             Assert.AreEqual("Military", lesson.Scenes[3].Name);
             Assert.AreEqual("Healthcare", lesson.Scenes[4].Name);
             
             // Scene end action type
-            Assert.AreEqual(ActionType.CompleteLesson, scene1.EndAction.Type);
+            Assert.AreEqual(ActionType.CompleteLesson, lesson.InitialScene.EndAction.Type);
             
             // Scene initial view
-            AssertUtils.AreApproximatelyEqual(new Quaternion(0.01845f, 0.98091f, 0.11783f, -0.15361f), scene1.InitialView.Quaternion);
+            AssertUtils.AreApproximatelyEqual(new Quaternion(0.01845f, 0.98091f, 0.11783f, -0.15361f), lesson.InitialScene.InitialView.Quaternion);
             
             // Scene skybox
-            Assert.IsTrue(scene1.Skybox.IsVideo());
-            Assert.AreEqual("1d2ed0cc-8e64-439f-9448-e4cdc8e0b0f2", scene1.Skybox.FileData.Guid);
-            Assert.AreEqual(Orchestrate.CdnUrl("local/1d2ed0cc-8e64-439f-9448-e4cdc8e0b0f2/Beach-4K.mp4"), scene1.Skybox.FileData.Url);
-            Assert.AreEqual(lesson.Guid, scene1.Skybox.FileData.Parent.Guid);
+            Assert.IsTrue(lesson.InitialScene.Skybox.IsVideo());
+            Assert.AreEqual("1d2ed0cc-8e64-439f-9448-e4cdc8e0b0f2", lesson.InitialScene.Skybox.FileData.Guid);
+            Assert.AreEqual(Orchestrate.GetCdnUrl("local/1d2ed0cc-8e64-439f-9448-e4cdc8e0b0f2/Beach-4K.mp4"), lesson.InitialScene.Skybox.FileData.Url);
+            Assert.AreEqual(lesson.Guid, lesson.InitialScene.Skybox.FileData.Parent.Guid);
             
             // Timed events
-            Assert.AreEqual(5, scene1.TimedEvents.Count);
+            Assert.AreEqual(5, lesson.InitialScene.TimedEvents.Count);
             
             // Text event
-            EventData textEventData = scene1.SortedTimedEvents[0];
+            EventData textEventData = lesson.InitialScene.SortedTimedEvents[0];
             Assert.AreEqual(typeof(InfoEventData), textEventData.GetType());
             Assert.IsTrue(textEventData.Description.Contains("<b>Welcome</b>"));
             Assert.AreEqual("b50b526e-32d5-43fc-ade6-45d3f3f6f576", textEventData.Id);
@@ -116,33 +116,73 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
             Assert.AreEqual("Continue", textEventData.ButtonText);
             
             // Media event
-            EventData mediaEventData = scene1.SortedTimedEvents[1];
+            EventData mediaEventData = lesson.InitialScene.SortedTimedEvents[1];
             Assert.AreEqual(typeof(MediaEventData), mediaEventData.GetType());
             Assert.IsTrue(mediaEventData.Asset.IsImage());
             Assert.AreEqual("7974964c-adef-4ff5-8096-471c56dffc09", mediaEventData.Asset.FileData.Guid);
-            Assert.AreEqual(Orchestrate.CdnUrl("local/7974964c-adef-4ff5-8096-471c56dffc09/360-icon_editor.jpg"), mediaEventData.Asset.FileData.Url);
-            Assert.AreEqual(Path.Combine(Application.persistentDataPath, lesson.Guid, mediaEventData.Asset.FileData.Guid, mediaEventData.Asset.FileData.Name), Orchestrate.GetCachePath( mediaEventData.Asset.FileData));
+            Assert.AreEqual(Orchestrate.GetCdnUrl("local/7974964c-adef-4ff5-8096-471c56dffc09/360-icon_editor.jpg"), mediaEventData.Asset.FileData.Url);
             Assert.AreEqual(lesson.Guid, mediaEventData.Asset.FileData.Parent.Guid);
             Assert.IsFalse(mediaEventData.MuteAudio);
             
             // Hotspot event
-            HotspotEventData hotspotEventData = (HotspotEventData) scene1.SortedTimedEvents[3];
+            HotspotEventData hotspotEventData = (HotspotEventData) lesson.InitialScene.SortedTimedEvents[3];
             Assert.AreEqual(typeof(HotspotEventData), hotspotEventData.GetType());
             Assert.AreEqual(5, hotspotEventData.Hotspots.Count);
+            Assert.IsTrue(hotspotEventData.PausesPlayback());
+            
             HotspotData healthcareHotspot = hotspotEventData.Hotspots[0];
             Assert.AreEqual("Healthcare", healthcareHotspot.Name);
             Assert.AreEqual(ActionType.GoToScene, healthcareHotspot.Action.Type);
             Assert.AreEqual(lesson.Scenes[4].Id, healthcareHotspot.Action.SceneId);
+            Assert.AreEqual("9beac816-5aba-463c-96d4-1943005cf35c", healthcareHotspot.Id);
+            Assert.AreEqual("f82f", healthcareHotspot.Icon?.Unicode);
+            AssertUtils.AreApproximatelyEqual(new Vector3(0.23123f, 0.09325f, 3.46305f), healthcareHotspot.Position);
+
+            HotspotData exitHotspot = hotspotEventData.Hotspots[4];
+            Assert.AreEqual("Exit Experience", exitHotspot.Name);
+            Assert.AreEqual(ActionType.CompleteLesson, exitHotspot.Action.Type);
+            Assert.AreEqual("f52b", exitHotspot.Icon?.Unicode);
+            
+            // Question event
+            QuestionEventData questionEventData = (QuestionEventData) lesson.Scenes[1].SortedTimedEvents[4];
+            Assert.AreEqual(typeof(QuestionEventData), questionEventData.GetType());
+            Assert.AreEqual(1, questionEventData.Questions.Count);
+            QuestionData question = questionEventData.Questions[0];
+            Assert.AreEqual("84af5141-2eb8-4bc7-b26f-cdcd579a2f77", question.Id);
+            Assert.AreEqual(2, question.Answers.Count);
+            
+            // Question answers
+            Assert.AreEqual("5035b7f8-b6f4-41c6-8e77-59084bf3f48d", question.Answers[0].Id);
+            Assert.IsTrue(question.Answers[0].IsCorrect);
+            Assert.AreEqual(ActionType.GoToScene, question.Answers[0].Action.Type);
+            Assert.AreEqual("Yes", question.Answers[0].Text);
+            
+            Assert.AreEqual("c61b836f-909a-4dda-a97a-3603a5bcf8bd", question.Answers[1].Id);
+            Assert.IsFalse(question.Answers[1].IsCorrect);
+            Assert.AreEqual(ActionType.CompleteLesson, question.Answers[1].Action.Type);
+            Assert.AreEqual("No", question.Answers[1].Text);
         }
 
         [UnityTest]
-        public IEnumerator TestGetLesson() => UniTask.ToCoroutine(async () =>
+        public IEnumerator TestLoadLesson() => UniTask.ToCoroutine(async () =>
         {
+            // Test direct download 
             LessonData lesson = await Orchestrate.LoadLesson(Config.Lesson);
             AssertValidLesson(lesson);
 
+            // Test load from cache (file created in direct download)
             lesson = Orchestrate.LoadCachedLesson(Config.Lesson.Guid);
             AssertValidLesson(lesson);
+        });
+
+        [UnityTest]
+        public IEnumerator TestDownloads() => UniTask.ToCoroutine(async () =>
+        {
+            Orchestrate.DeleteCachedLesson(Config.Lesson.Guid, true);
+            Assert.IsFalse(Orchestrate.CacheContainsLesson(Config.Lesson.Guid));
+            LessonData lesson = await Orchestrate.LoadLesson(Config.Lesson);
+            DownloadJob job = await Downloader.Download(lesson);
+            Assert.IsTrue(job.IsComplete);
         });
     }
 } 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -41,7 +42,7 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("id")] public string Id;
         [JsonProperty("startTime")] public double StartTime = 0.0;
         [JsonProperty("endTime")] public double EndTime = 0.0;
-        [JsonProperty("pausePlayback")] public bool PausePlayback = false;
+        [JsonProperty("pausePlayback")] private bool _pausePlayback = false;
         [JsonProperty("canBeSkipped")] public bool Skippable = false;
         [JsonProperty("name")] public string Name = "";
         [JsonProperty("title")] public string Title = "";
@@ -139,7 +140,7 @@ namespace AccessVR.OrchestrateVR.SDK
 
             if (EndTime < StartTime)
             {
-                PausePlayback = true;
+                _pausePlayback = true;
             }
         }
 
@@ -153,7 +154,7 @@ namespace AccessVR.OrchestrateVR.SDK
             return _isActionEvent;
         }
 
-        public virtual void SetParentScene(SceneData scene)
+        public override void SetParentScene(SceneData scene)
         {
             base.SetParentScene(scene);
             Asset?.SetParentScene(scene);
@@ -161,10 +162,11 @@ namespace AccessVR.OrchestrateVR.SDK
 
         public virtual List<DownloadableFileData> GetDownloadableFiles()
         {
-            return new List<DownloadableFileData>
-            {
-                Asset?.FileData
-            };
+            List<DownloadableFileData> list = new();
+            
+            list.AddRange(Asset?.GetDownloadableFiles() ?? new());
+            
+            return list.Where(file => file != null).ToList();
         }
 
         public IEventView CreateView()
@@ -195,6 +197,6 @@ namespace AccessVR.OrchestrateVR.SDK
         public void SetHasBeenAcknowledged(bool acknowledged) => this.acknowledged = acknowledged;
         public void Unacknowledge() => acknowledged = false;
         public virtual bool ShouldPauseForAcknowledgement() => PausesPlayback();
-        public bool PausesPlayback() => PausePlayback;
+        public bool PausesPlayback() => _pausePlayback;
     }
 }

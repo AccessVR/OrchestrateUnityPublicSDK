@@ -13,9 +13,9 @@ namespace AccessVR.OrchestrateVR.SDK
 {
 	public enum Environment
 	{
-		Production,
-		Staging,
-		Development,
+		Prod,
+		Stage,
+		Dev,
 		Local,
 		Custom,
 	}
@@ -23,7 +23,7 @@ namespace AccessVR.OrchestrateVR.SDK
     public class Orchestrate : GenericSingleton<Orchestrate>
     {
 	    [SerializeField]
-	    protected Environment environmentName = Environment.Production;
+	    protected Environment environment = Environment.Prod;
 
 	    public StyleRefSettings colorStyles;
 		
@@ -46,31 +46,35 @@ namespace AccessVR.OrchestrateVR.SDK
 	    [CanBeNull]
         public static UserData User => GetUser();
 
-        public static void SetEnvironmentName(Environment name)
+        public static void SetEnvironment(Environment name)
         {
-	        Instance.environmentName = name;
+	        Instance.environment = name;
         }
 
-        public static Environment GetEnvironmentName()
+        public static Environment GetEnvironment()
         {
-	        return Instance.environmentName;
+	        return Instance.environment;
         }
 
         public static bool Is(Environment environmentName)
         {
-	        return Instance.environmentName == environmentName;
+	        return Instance.environment == environmentName;
         }
 
         public static void SetAuthToken(string token)
         {
-	        PlayerPrefs.SetString("apiKey", token);
+	        PlayerPrefs.SetString(GetEnvironmentPrefKey("apiKey"), token);
 	        PlayerPrefs.Save();
             Instance._authToken = token;
         }
 
         public static string GetAuthToken()
         {
-            return String.IsNullOrEmpty(Instance._authToken) ? PlayerPrefs.GetString("apiKey") : Instance._authToken;
+	        if (!String.IsNullOrEmpty(Instance._authToken))
+	        {
+		        return Instance._authToken;
+	        }
+	        return PlayerPrefs.GetString(GetEnvironmentPrefKey("apiKey")) ?? PlayerPrefs.GetString("apiKey");
         }
 
         public static void SetBaseUrl(string url)
@@ -98,21 +102,23 @@ namespace AccessVR.OrchestrateVR.SDK
             return Instance._activeExperience;
         }
 
-        public static string GetBaseUrl()
+        public static string GetBaseUrl([CanBeNull] string path = null)
         {
 	        if (Is(Environment.Custom) && !String.IsNullOrEmpty(Instance._customBaseUrl))
 	        {
 		        return Instance._customBaseUrl;
 	        }
 
-	        return Instance.environmentName switch
+	        string baseUrl = Instance.environment switch
             {
-                Environment.Production => "https://app.orchestratevr.com",
-                Environment.Staging => "https://orchestrate-stage.accessvr.com",
-                Environment.Development => "https://orchestrate-dev.accessvr.com",
+                Environment.Prod => "https://app.orchestratevr.com",
+                Environment.Stage => "https://orchestrate-stage.accessvr.com",
+                Environment.Dev => "https://orchestrate-dev.accessvr.com",
                 Environment.Local => "https://ovr.avr.ngrok.io",
                 _ => "http://localhost"
             };
+	        
+	        return baseUrl + (path != null ? "/" + path.TrimStart('/') : "");
         }
 
         public static string ProfileUrl(int userId)
@@ -137,28 +143,21 @@ namespace AccessVR.OrchestrateVR.SDK
 
         public static string GetCdnUrl([CanBeNull] string path = null)
         {
-            if (Is(Environment.Custom) && !String.IsNullOrEmpty(Instance._customCdnUrl))
+	        string cdnBaseUrl = Instance.environment switch
             {
-                return Instance._customCdnUrl;
-            }
-
-            string cdnBaseURL = Instance.environmentName switch
-            {
-                Environment.Production => "https://files.accessvr.com",
+                Environment.Prod => "https://files.accessvr.com",
                 _ => "https://dev.files.ovr.accessvr.com"
             };
-
-            return cdnBaseURL + (path != null ? "/" + path.TrimStart('/') : "");
+            if (Is(Environment.Custom) && !String.IsNullOrEmpty(Instance._customCdnUrl))
+            {
+                cdnBaseUrl = Instance._customCdnUrl;
+            }
+            return cdnBaseUrl + (path != null ? "/" + path.TrimStart('/') : "");
         }
 
         public static string GetUrl(string path = null)
         {
-            return GetBaseUrl() + (path != null ? "/" + path.TrimStart('/') : "");
-        }
-
-        public static string CdnUrl(string path)
-        {
-            return GetCdnUrl() + (path != null ? "/" + path.TrimStart('/') : "");
+            return GetBaseUrl(path);
         }
 
         public static HttpClient CreateClient()
@@ -331,25 +330,36 @@ namespace AccessVR.OrchestrateVR.SDK
 
         public bool HasUser()
         {
-	        return _user != null || PlayerPrefs.HasKey("apiKey");
+	        return _user != null || PlayerPrefs.HasKey(GetEnvironmentPrefKey("apiKey")) || PlayerPrefs.HasKey("apiKey");
         }
-		
-		public static async UniTask<UserData> LoadUser(Action onUserDataLoaded)
-		{
-			if (String.IsNullOrEmpty(GetAuthToken()))
-			{
-				if (!Offline)
-				{	
-					FireError(Error.NotAuthenticated);
-				}
-				else
-				{
-					FireError(Error.InternetRequired);
-				}
-				return null;
-			}
-			
-			if (PlayerPrefs.HasKey("userid"))
+
+        public static string GetEnvironmentPrefKey(string key)
+        {
+	        return $"{GetEnvironment().ToString()}.{key}";
+        }
+
+        public static async UniTask<UserData> LoadUser([CanBeNull] Action<UserData> onUserDataLoaded = null)
+        {
+	        if (String.IsNullOrEmpty(GetAuthToken()))
+	        {
+		        if (!Offline)
+		        {
+			        FireError(Error.NotAuthenticated);
+		        }
+		        else
+		        {
+			        FireError(Error.InternetRequired);
+		        }
+
+		        return null;
+	        }
+
+	        if (PlayerPrefs.HasKey(GetEnvironmentPrefKey("user")))
+	        {
+				SetUser(JsonConvert.DeserializeObject<UserData>(PlayerPrefs.GetString(GetEnvironmentPrefKey("user"))));;
+				
+			// Legacy support for userid storage	
+	        } else if (PlayerPrefs.HasKey("userid"))
 			{
 				UserData user = new UserData();
 				user.UserId = int.Parse(PlayerPrefs.GetString("userid"));
@@ -360,17 +370,13 @@ namespace AccessVR.OrchestrateVR.SDK
 
 				SetUser(user);
 			}
+	        
 			else
 			{
 				try
 				{
 					UserData user = await CreateClient().GetUser();
-
-					PlayerPrefs.SetString("username", user.UserName);
-					PlayerPrefs.SetString("displayname", user.DisplayName);
-					PlayerPrefs.SetString("userid", user.UserId.ToString());
-					PlayerPrefs.SetString("userroles", String.Join(",", user.Roles));
-					PlayerPrefs.SetString("userpermissions", String.Join(",", user.Permissions));
+					PlayerPrefs.SetString(GetEnvironmentPrefKey("user"), JsonConvert.SerializeObject(user));;
 					PlayerPrefs.Save();
 					
 					SetUser(user);
@@ -391,7 +397,7 @@ namespace AccessVR.OrchestrateVR.SDK
 				}
 			}
 
-			onUserDataLoaded?.Invoke();
+			onUserDataLoaded?.Invoke(GetUser());
 			Instance.sessionListeners.ForEach((handler) => handler.OnUserData(GetUser()));
 			return GetUser();
 		}
@@ -401,13 +407,13 @@ namespace AccessVR.OrchestrateVR.SDK
 			return await CreateClient().IsLoggedIn();
 		}
 
-		public void Logout()
+		public static void Logout()
 		{
 			SetAuthToken(null);
 			SetUser(null);
 			PlayerPrefs.DeleteAll();
 			PlayerPrefs.Save();
-			sessionListeners.ForEach((handler) => handler.OnLogout());
+			Instance.sessionListeners.ForEach((handler) => handler.OnLogout());
 		}
         
         public static Dictionary<string, string> GetSettings()
@@ -425,9 +431,9 @@ namespace AccessVR.OrchestrateVR.SDK
 			return settings;
 		}
 
-		public static async UniTask<LessonData> GetOrLoadLesson(LessonDataLookup lookup)
+		public static async UniTask<LessonData> LoadLessonThroughCache(LessonDataLookup lookup)
 		{
-			if (!lookup.Preview && CacheContainsLesson(lookup.Guid))
+			if (!lookup.Preview && CacheContainsLessonAndDownloadables(lookup.Guid))
 			{
 				LessonData lesson = LoadCachedLesson(lookup.Guid);
 
@@ -437,16 +443,6 @@ namespace AccessVR.OrchestrateVR.SDK
 			} 
 			
 			return await LoadLesson(lookup);
-		}
-
-		public static async UniTask<LessonData> LoadLesson(string guid)
-		{
-			return await GetOrLoadLesson(new LessonDataLookup(guid));
-		}
-
-		public static async UniTask<LessonData> LoadLesson(int id)
-		{
-			return await GetOrLoadLesson(new LessonDataLookup(id));
 		}
 		
 		public static async UniTask<LessonData> LoadLesson(LessonDataLookup lookup)
@@ -461,6 +457,27 @@ namespace AccessVR.OrchestrateVR.SDK
 		public static bool CacheContainsLesson(string guid)
 		{
 			LessonData lesson = LessonData.Make(StringUtils.AssertNotNullOrEmpty(guid));
+			if (File.Exists(GetLegacyCachePath(lesson)))
+			{
+				return true;
+			}
+			return CacheContains(lesson.FileData);
+		}
+
+		private static string GetLegacyCachePath(LessonData lesson)
+		{
+			// Legacy cache path for Lesson: {lesson.Guid}/content.json
+			StringUtils.AssertNotNullOrEmpty(lesson.Guid);
+			return Path.Combine(Application.persistentDataPath, lesson.Guid, "content.json");
+		}
+
+		public static bool CacheContainsLessonAndDownloadables(string guid)
+		{
+			if (!CacheContainsLesson(guid))
+			{
+				return false;
+			}
+			LessonData lesson = LessonData.Make(StringUtils.AssertNotNullOrEmpty(guid));
 			foreach (DownloadableFileData file in lesson.GetDownloadableFiles())
 			{
 				if (!CacheContains(file))
@@ -474,27 +491,29 @@ namespace AccessVR.OrchestrateVR.SDK
 		public static bool CacheContains(LessonData lesson)
 		{
 			StringUtils.AssertNotNullOrEmpty(lesson.Guid);
-			return CacheContainsLesson(lesson.Guid);
+			return CacheContainsLessonAndDownloadables(lesson.Guid);
 		}
 
 		public static bool CacheContains(AssetData asset)
 		{
-			return CacheContains(asset.FileData);
-		}
-
-		public static bool HasCachedThumbnail(AssetData asset)
-		{
-			return CacheContains(asset.ThumbnailFileData);
+			return CacheContains(asset.FileData) && (asset.ThumbnailFileData == null || CacheContains(asset.ThumbnailFileData));
 		}
 		
 		public static bool CacheContains(FileData file)
 		{
-			return File.Exists(GetCachePath(file));
+			// TODO: in a future release, when we stop caring about Legacy, just move to GetCachePath()
+			return File.Exists(GetNewCachePath(file)) || File.Exists(GetLegacyCachePath(file));
 		}
 
 		public static LessonData LoadCachedLesson(string guid)
 		{
 			LessonData lesson = LessonData.Make(StringUtils.AssertNotNullOrEmpty(guid));
+			string legacyCachePath = GetLegacyCachePath(lesson);
+			if (File.Exists(legacyCachePath))
+			{
+				return JsonConvert.DeserializeObject<LessonData>(ReadCache(legacyCachePath));
+			}
+			
 			return JsonConvert.DeserializeObject<LessonData>(ReadCache(lesson.FileData));
 		}
 
@@ -503,11 +522,39 @@ namespace AccessVR.OrchestrateVR.SDK
 			return LoadCachedLesson(file.Guid);
 		}
 
-		public static void RemoveCachedLesson(string guid, bool removeContentAndAssets = false)
+		public static void DeleteCachedLesson(string guid, bool removeContentAndDownloadables = false)
 		{
-			StringUtils.AssertNotNullOrEmpty(guid);		
+			LessonData lesson = LessonData.Make(StringUtils.AssertNotNullOrEmpty(guid));
+			if (CacheContainsLesson(lesson.Guid))
+			{
+				lesson = LoadCachedLesson(lesson.Guid);
+			}
+			if (removeContentAndDownloadables)
+			{
+				lesson.GetDownloadableFiles().ForEach(DeleteCache);
+			}
+			string legacyCachePath = GetLegacyCachePath(lesson);
+			if (File.Exists(legacyCachePath))
+			{
+				File.Delete(legacyCachePath);
+			}
+			DeleteCache(lesson.FileData);
 		}
 
+		public static void DeleteCache(FileData file)
+		{
+			string legacyCachePath = GetLegacyCachePath(file);
+			if (File.Exists(legacyCachePath))
+			{
+				File.Delete(legacyCachePath);
+			}
+			string cachePath = GetNewCachePath(file);
+			if (File.Exists(legacyCachePath))
+			{
+				File.Delete(cachePath);
+			}
+		}
+		
 		protected static string GetGuidFromDirectoryPath(string path)
 		{
 			return path.Split('/').Last();
@@ -516,7 +563,7 @@ namespace AccessVR.OrchestrateVR.SDK
 		public static List<LessonData> GetCachedLessonList()
 		{
 			return Directory.GetDirectories(Application.persistentDataPath)
-				 .Select(dir => CacheContainsLesson(GetGuidFromDirectoryPath(dir)) ? LoadCachedLesson(GetGuidFromDirectoryPath(dir)) : null)
+				 .Select(dir => CacheContainsLessonAndDownloadables(GetGuidFromDirectoryPath(dir)) ? LoadCachedLesson(GetGuidFromDirectoryPath(dir)) : null)
 				.Where(lesson => lesson != null)
 				.OrderBy(lesson => lesson.Name)
 				.ToList();
@@ -525,7 +572,7 @@ namespace AccessVR.OrchestrateVR.SDK
 		public async UniTaskVoid LoadSkybox()
 		{
 			string path = await CreateClient().GetSkyboxPath();
-			string url = CdnUrl(path);
+			string url = GetCdnUrl(path);
 			PlayerPrefs.SetString("defaultSkybox", url);
 			PlayerPrefs.Save();
 			sessionListeners.ForEach((listener) => listener.OnSkybox(url));
@@ -594,9 +641,36 @@ namespace AccessVR.OrchestrateVR.SDK
 
 		public static string GetCachePath(FileData file)
 		{
-			return file.Parent != null ? 
-                Path.Combine(Application.persistentDataPath, file.Parent.Guid, file.Guid, StringUtils.ReplaceSpaces(file.Name)) 
-                : Path.Combine(Application.persistentDataPath, file.Guid, StringUtils.ReplaceSpaces(file.Name));
+			// If a file exists in the new path, return new path
+			string newCachePath = GetNewCachePath(file);
+			if (File.Exists(newCachePath))
+			{
+				return newCachePath;
+			}
+			// Look for legacy cache
+			string legacyCachePath = GetLegacyCachePath(file);
+			if (File.Exists(legacyCachePath))
+			{
+				return legacyCachePath;
+			}
+			// Fall back on new cache path
+			return newCachePath;
+		}
+
+		private static string GetNewCachePath(FileData file)
+		{
+			// New Cache path is {file.Env}/{file.Guid}/{file.Name}
+			return Path.Combine(Application.persistentDataPath, StringUtils.ReplaceSpaces(file.Env.ToLower()), file.Guid, StringUtils.ReplaceSpaces(file.Name));
+		}
+
+		private static string GetLegacyCachePath(FileData file)
+		{
+			// Legacy Cache path is {parentLesson.Guid}/{file.Env}/{file.Guid}/{file.Name}
+			if (file.Parent != null)
+			{
+				return Path.Combine(Application.persistentDataPath, file.Parent.Guid, StringUtils.ReplaceSpaces(file.Env.ToLower()), file.Guid, StringUtils.ReplaceSpaces(file.Name));
+			}
+			return GetNewCachePath(file);
 		}
 
 		public static string GetCachePath(AssetData asset)
@@ -606,7 +680,7 @@ namespace AccessVR.OrchestrateVR.SDK
 
 		public static string GetTempCachePath(FileData file)
 		{
-			return GetCachePath(file) + ".tmp";
+			return GetNewCachePath(file) + ".tmp";
 		}
 
 		public static UnityWebRequest MakeCacheRequest(DownloadableFileData file)
@@ -631,25 +705,25 @@ namespace AccessVR.OrchestrateVR.SDK
 		public static void WriteCache(FileData file, string contents)
 		{
 			CreateCacheDirectory(file);
-			File.WriteAllText(GetCachePath(file), contents);
+			File.WriteAllText(GetNewCachePath(file), contents);
 		}
 
 		public static string ReadCache(FileData file)
 		{
-			return File.ReadAllText(GetCachePath(file));
+			return ReadCache(GetCachePath(file));
+		}
+
+		private static string ReadCache(string path)
+		{
+			return File.ReadAllText(path);
 		}
 
 		public static void FinalizeTempCache(FileData file)
 		{
-			string cachePath = GetCachePath(file);
+			string cachePath = GetNewCachePath(file);
 			string tempCachePath = GetTempCachePath(file);
-			if (tempCachePath == null || !File.Exists(tempCachePath))
+			if (!File.Exists(tempCachePath))
 			{
-				if (File.Exists(cachePath))
-				{
-					// nothing to do
-					return;	
-				}
 				throw new InvalidOperationException("File has not be temporarily stored yet and cache does not exist.");
 			}
 			if (File.Exists(cachePath))

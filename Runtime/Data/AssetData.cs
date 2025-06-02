@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 
 namespace AccessVR.OrchestrateVR.SDK
 {
@@ -18,8 +19,6 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("path")] public string path;
         [JsonProperty("originalPath")] public string originalPath;
         [JsonProperty("thumbnailPath")] public string thumbnailPath;
-
-        [JsonIgnore] private SceneData _parentScene;
         
         private Texture2D _texture;
         
@@ -29,70 +28,64 @@ namespace AccessVR.OrchestrateVR.SDK
         public bool IsAudio() => assetTypeId == 4;
         public bool IsImage() => assetTypeId == 5;
         public bool IsVideo() => assetTypeId == 6;
-        
         public bool IsAudioOrVideo() => IsAudio() || IsVideo();
 
-        public DownloadableFileData FileData
+        [JsonIgnore] public DownloadableFileData FileData
         {
             get
             {
-                string assetPath = path;
-                
+                AssetPath assetPath = AssetPath.Make(path);
                 if (IsVideo() && originalPath != null)
                 {
-                    assetPath = originalPath;
+                    assetPath = AssetPath.Make(originalPath);
                 }
 
-                if (_parentScene?.GetParentLesson() != null)
+                if (GetParentScene()?.GetParentLesson() != null)
                 {
                     return new DownloadableFileData(
-                        Orchestrate.CdnUrl(assetPath), 
-                        AssetPath.Make(assetPath).Guid, 
-                        path, 
-                        _parentScene.GetParentLesson().FileData);    
-                }
-                else
-                {
-                    return new DownloadableFileData(
-                        Orchestrate.CdnUrl(assetPath), 
-                        AssetPath.Make(assetPath).Guid, 
-                        path);    
+                        Orchestrate.GetCdnUrl(assetPath.ToString()), 
+                        assetPath.Env,
+                        assetPath.Guid, 
+                        assetPath.Name, 
+                        GetParentScene().GetParentLesson().FileData
+                    );    
                 }
                 
+                return new DownloadableFileData(
+                    Orchestrate.GetCdnUrl(assetPath.ToString()), 
+                    assetPath.Env,
+                    assetPath.Guid, 
+                    assetPath.Name
+                );    
             }
         }
 
-        public void SetParentScene(SceneData scene)
-        {
-            _parentScene = scene;
-        }
-
-        public SceneData GetParentScene(SceneData scene)
-        {
-            return _parentScene;
-        }
-
+        [JsonIgnore]
+        [CanBeNull]
         public DownloadableFileData ThumbnailFileData
         {
             get
             {
                 if (HasThumbnail())
                 {
-                    if (_parentScene?.GetParentLesson() != null)
+                    AssetPath assetPath = AssetPath.Make(thumbnailPath);
+                    if (GetParentScene()?.GetParentLesson() != null)
                     {
                         return new DownloadableFileData(
-                            Orchestrate.CdnUrl(thumbnailPath), 
-                            AssetPath.Make(thumbnailPath).Guid, 
-                            path, 
-                            _parentScene.GetParentLesson().FileData);    
+                            Orchestrate.GetCdnUrl(assetPath.ToString()),
+                            assetPath.Env,
+                            assetPath.Guid, 
+                            assetPath.Name, 
+                            GetParentScene().GetParentLesson().FileData
+                        );    
                     }
-                    else
-                    {
-                        return new DownloadableFileData(
-                            Orchestrate.CdnUrl(thumbnailPath), 
-                            AssetPath.Make(thumbnailPath).Guid, 
-                            path);    
-                    }
+                    
+                    return new DownloadableFileData(
+                        Orchestrate.GetCdnUrl(assetPath.ToString()),
+                        assetPath.Env,
+                        assetPath.Guid,  
+                        assetPath.Name
+                    );    
                 }
                 return null;
             }

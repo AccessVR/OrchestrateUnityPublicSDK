@@ -48,6 +48,7 @@ namespace AccessVR.OrchestrateVR.SDK
         public Error(string message, Exception cause)
         {
             _message = message;
+            _cause = cause;
         }
 
         public Error(ErrorType type, string message)
@@ -58,6 +59,7 @@ namespace AccessVR.OrchestrateVR.SDK
         
         public Error(Exception cause)
         {
+            _message = cause.Message;
             _cause = cause;
         }
 

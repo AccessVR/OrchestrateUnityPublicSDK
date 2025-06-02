@@ -6,13 +6,13 @@ namespace AccessVR.OrchestrateVR.SDK
     
     public class UserData
     {
-        [JsonProperty("userId")] public int UserId { get; set; }
-        [JsonProperty("userName")] public string UserName { get; set; }
-        [JsonProperty("displayName")] public string DisplayName { get; set; }
-        [JsonProperty("roles")] public List<string> Roles { get; set; }
-        [JsonProperty("permissions")] public List<string> Permissions { get; set; }
+        [JsonProperty("userId")] public int UserId;
+        [JsonProperty("userName")] public string UserName;
+        [JsonProperty("displayName")] public string DisplayName;
+        [JsonProperty("roles")] public List<string> Roles;
+        [JsonProperty("permissions")] public List<string> Permissions;
         
-        public bool IsAnonymous { get; set; }
+        [JsonIgnore] public bool IsAnonymous;
     }
 
 }

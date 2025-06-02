@@ -1,21 +1,21 @@
+using JetBrains.Annotations;
 using Newtonsoft.Json;
 
 namespace AccessVR.OrchestrateVR.SDK
 {
-
     public abstract class Data
     {
-        [JsonIgnore] private SceneData _parentScene;
+        [JsonIgnore] protected SceneData _parentScene;
 
         public virtual void SetParentScene(SceneData scene)
         {
             _parentScene = scene;
         }
 
-        public SceneData GetParentScene(SceneData scene)
+        [CanBeNull]
+        protected SceneData GetParentScene()
         {
             return _parentScene;
         }
     }
-    
 }
