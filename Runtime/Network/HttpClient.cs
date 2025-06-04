@@ -116,9 +116,9 @@ namespace AccessVR.OrchestrateVR.SDK
         {
 	        string path = "/api/rest/published-lesson/" + lookup.Id;
 			
-			if (!String.IsNullOrEmpty(lookup.EmbedKey))
+			if (!String.IsNullOrEmpty(lookup.UniqueKey))
 			{
-				path += "/" + lookup.EmbedKey;
+				path += "/" + lookup.UniqueKey;
 			}
 			
 			if (lookup.Preview)

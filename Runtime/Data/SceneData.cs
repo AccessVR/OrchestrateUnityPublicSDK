@@ -29,7 +29,7 @@ namespace AccessVR.OrchestrateVR.SDK
         
         [JsonProperty("showInSceneList")] public bool ShowInSceneList = true;
         [JsonProperty("thumbnailAsset")] public AssetData Thumbnail;
-        [JsonProperty("endAction")] public ActionData EndAction;
+        [JsonProperty("endAction")] public ActionData EndAction = ActionData.NoAction;
         [JsonProperty("initialView")] public InitialViewData InitialView;
         
         [JsonProperty("timedEvents")] private List<JObject> _timedEvents;

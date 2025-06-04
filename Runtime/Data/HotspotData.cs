@@ -16,7 +16,7 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("font")] public string Font;
         [JsonProperty("id")] public string Id;
         [JsonProperty("icon")] public IconData Icon;
-        [JsonProperty("action")] public ActionData Action;
+        [JsonProperty("action")] public ActionData Action = ActionData.NoAction;
         [FormerlySerializedAs("acknowledged")] [JsonProperty("acknowledged")] public bool Acknowledged = false;
         [FormerlySerializedAs("confirm")] [JsonProperty("confirm")] public bool Confirm = true;
         [FormerlySerializedAs("alwaysShowLabel")] [JsonProperty("alwaysShowLabel")] public bool AlwaysShowLabel = true;

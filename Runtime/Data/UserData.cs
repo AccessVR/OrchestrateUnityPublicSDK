@@ -11,6 +11,7 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("displayName")] public string DisplayName;
         [JsonProperty("roles")] public List<string> Roles;
         [JsonProperty("permissions")] public List<string> Permissions;
+        [JsonProperty("userCode")] public string UserCode;
         
         [JsonIgnore] public bool IsAnonymous;
     }

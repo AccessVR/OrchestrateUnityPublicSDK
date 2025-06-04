@@ -430,21 +430,7 @@ namespace AccessVR.OrchestrateVR.SDK
 
 			return settings;
 		}
-
-		public static async UniTask<LessonData> LoadLessonThroughCache(LessonDataLookup lookup)
-		{
-			if (!lookup.Preview && CacheContainsLessonAndDownloadables(lookup.Guid))
-			{
-				LessonData lesson = LoadCachedLesson(lookup.Guid);
-
-				// TODO: check for updates
-				
-				return lesson;
-			} 
-			
-			return await LoadLesson(lookup);
-		}
-		
+        
 		public static async UniTask<LessonData> LoadLesson(LessonDataLookup lookup)
 		{
 			NumberUtils.AssertNotNullOrEmpty(lookup.Id);
@@ -513,13 +499,26 @@ namespace AccessVR.OrchestrateVR.SDK
 			{
 				return JsonConvert.DeserializeObject<LessonData>(ReadCache(legacyCachePath));
 			}
-			
+			if (!CacheContains(lesson.FileData))
+			{
+				throw new InvalidOperationException("Could not find lesson in cache: " + guid);
+			}
 			return JsonConvert.DeserializeObject<LessonData>(ReadCache(lesson.FileData));
+		}
+
+		public static LessonData LoadCachedLesson(LessonDataLookup lookup)
+		{
+			return LoadCachedLesson(lookup.Guid);
 		}
 
 		public static LessonData LoadCachedLesson(FileData file)
 		{
 			return LoadCachedLesson(file.Guid);
+		}
+
+		public static void DeleteCachedLesson(LessonDataLookup lookup, bool removeContentAndDownloadables = false)
+		{
+			DeleteCachedLesson(lookup.Guid, removeContentAndDownloadables);
 		}
 
 		public static void DeleteCachedLesson(string guid, bool removeContentAndDownloadables = false)
@@ -559,14 +558,56 @@ namespace AccessVR.OrchestrateVR.SDK
 		{
 			return path.Split('/').Last();
 		}
-		
-		public static List<LessonData> GetCachedLessonList()
+
+		private static List<LessonData> GetLegacyCachedLessons()
 		{
+			List<string> envList = new List<string>
+			{
+				"local",
+				"dev",
+				"stage",
+				"prod",
+				"custom"
+			};
+
 			return Directory.GetDirectories(Application.persistentDataPath)
-				 .Select(dir => CacheContainsLessonAndDownloadables(GetGuidFromDirectoryPath(dir)) ? LoadCachedLesson(GetGuidFromDirectoryPath(dir)) : null)
+				.Where(dir => envList.Find(env => env == dir) == null)
+				.Select(dir =>
+					CacheContainsLessonAndDownloadables(GetGuidFromDirectoryPath(dir))
+						? LoadCachedLesson(GetGuidFromDirectoryPath(dir))
+						: null)
 				.Where(lesson => lesson != null)
 				.OrderBy(lesson => lesson.Name)
 				.ToList();
+		}
+
+		private static List<LessonData> GetCachedLessonsForEnvironment(Environment environment)
+		{
+			string path = Path.Combine(Application.persistentDataPath, environment.ToString().ToLower());
+			if (!Directory.Exists(path))
+			{
+				return new();
+			}
+			
+			return Directory.GetDirectories(path)
+				.Select(dir => 
+					CacheContainsLessonAndDownloadables(GetGuidFromDirectoryPath(dir)) 
+						? LoadCachedLesson(GetGuidFromDirectoryPath(dir)) 
+						: null)
+				.Where(lesson => lesson != null)
+				.OrderBy(lesson => lesson.Name)
+				.ToList();
+		}
+		
+		public static List<LessonData> GetCachedLessonList()
+		{
+			List<LessonData> lessons = new List<LessonData>();
+			
+			lessons.AddRange(GetCachedLessonsForEnvironment(Orchestrate.GetEnvironment()));
+			
+			lessons.AddRange(GetLegacyCachedLessons());
+
+			return lessons;
 		}
 
 		public async UniTaskVoid LoadSkybox()

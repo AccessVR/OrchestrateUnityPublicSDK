@@ -6,13 +6,13 @@ namespace AccessVR.OrchestrateVR.SDK
     {
         [JsonProperty("id")] private int _id;
         [JsonProperty("guid")] private string _guid;
-        [JsonProperty("embedKey")] private string _embedKey;
-        private bool _preview;
+        [JsonProperty("embedKey")] private string _uniqueKey;
+        [JsonProperty("preview")] private bool _preview;
         
         public int Id => _id;
         public string Guid => _guid;
         public bool Preview => _preview;
-        public string EmbedKey => _embedKey;
+        public string UniqueKey => _uniqueKey;
         
         public LessonDataLookup(string guid)
         {
@@ -30,19 +30,19 @@ namespace AccessVR.OrchestrateVR.SDK
             _preview = preview;
         }
 
-        public LessonDataLookup(int id, string embedKey)
+        public LessonDataLookup(int id, string guid)
         {
             _id = id;
-            _embedKey = embedKey;
+            _guid = guid;
         }
         
         [JsonConstructor]
-        public LessonDataLookup(int id, string guid, bool preview = false, string embedKey = null)
+        public LessonDataLookup(int id, string guid, bool preview = false, string uniqueKey = null)
         {
             _id = id;
             _guid = guid;
             _preview = preview;
-            _embedKey = embedKey;
+            _uniqueKey = uniqueKey;
         }
         
     }

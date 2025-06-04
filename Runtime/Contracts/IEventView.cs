@@ -9,5 +9,6 @@ namespace AccessVR.OrchestrateVR.SDK
         void Destroy();
         void Pause();
         void Play();
+        bool IsDestroyed();
     }
 }

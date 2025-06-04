@@ -10,6 +10,7 @@
         "UnityEngine.Networking",
         "Unity.TextMeshPro",
         "Newtonsoft.Json",
+        "Newtonsoft.Json.Linq",
         "AVProVideo.Runtime",
         "AVProVideo.Extensions.UnityUI",
         "Vuplex.WebView",

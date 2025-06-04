@@ -29,6 +29,8 @@ namespace AccessVR.OrchestrateVR.SDK
 		[JsonIgnore] public ActionType Type = ActionType.None;
 		[JsonIgnore] public EventData EventData;
 
+		public static ActionData NoAction => new ActionData();
+
 		[OnDeserialized]
 		public void OnDeserialized(StreamingContext context)
 		{

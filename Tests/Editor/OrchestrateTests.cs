@@ -1,4 +1,3 @@
-using Newtonsoft.Json.Linq;
 using System.IO;
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
@@ -33,7 +32,8 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
     {
         private static Config _config;
 
-        private static Config Config => _config ??= JToken.Parse(ReadTestData("test.config.json")).ToObject<Config>();
+        private static Config Config =>
+            _config ??= JsonConvert.DeserializeObject<Config>(ReadTestData("test.config.json"));
         
         private static string ReadTestData(string name)
         {
@@ -62,7 +62,7 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
             Assert.IsNotEmpty(Config.AuthToken);
             Assert.AreEqual(Config.AuthToken, Orchestrate.GetAuthToken());
             Assert.IsNotEmpty(Config.Lesson.Guid);
-            Assert.IsNotEmpty(Config.Lesson.EmbedKey);
+            Assert.IsNotEmpty(Config.Lesson.UniqueKey);
             Assert.IsTrue(Config.Lesson.Id > 0);
         }
 
@@ -119,6 +119,7 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
             EventData mediaEventData = lesson.InitialScene.SortedTimedEvents[1];
             Assert.AreEqual(typeof(MediaEventData), mediaEventData.GetType());
             Assert.IsTrue(mediaEventData.Asset.IsImage());
+            Assert.IsFalse(mediaEventData.IsActionEvent());
             Assert.AreEqual("7974964c-adef-4ff5-8096-471c56dffc09", mediaEventData.Asset.FileData.Guid);
             Assert.AreEqual(Orchestrate.GetCdnUrl("local/7974964c-adef-4ff5-8096-471c56dffc09/360-icon_editor.jpg"), mediaEventData.Asset.FileData.Url);
             Assert.AreEqual(lesson.Guid, mediaEventData.Asset.FileData.Parent.Guid);
@@ -161,6 +162,28 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
             Assert.IsFalse(question.Answers[1].IsCorrect);
             Assert.AreEqual(ActionType.CompleteLesson, question.Answers[1].Action.Type);
             Assert.AreEqual("No", question.Answers[1].Text);
+            
+            // Question as Hotspot Action Event
+            HotspotEventData educationHotspots = (HotspotEventData) lesson.Scenes[1].SortedTimedEvents[2];
+            HotspotData notAPlantHotspot = educationHotspots.Hotspots[1];
+            Assert.AreEqual("Not a Plant?", notAPlantHotspot.Name);
+            ActionData showQuestionAction = notAPlantHotspot.Action;
+            Assert.AreEqual(ActionType.ShowCard, showQuestionAction.Type);
+            QuestionEventData notAPlantQuestions = (QuestionEventData) showQuestionAction.EventData;
+            Assert.True(notAPlantQuestions.IsActionEvent());
+            Assert.AreEqual(1, notAPlantQuestions.Questions.Count);
+            Assert.IsTrue(notAPlantQuestions.Questions[0].Text.Contains(
+                "There are hard and soft varieties of coral which live together in large groups called colonies. What are coral?"
+            ));
+            Assert.AreEqual(ActionType.None, notAPlantQuestions.Questions[0].Answers[0].Action.Type);
+            
+            // Media as Hotspot Action Event
+            HotspotData fishFactsHotspot = educationHotspots.Hotspots[0];
+            Assert.AreEqual("Fish Facts", fishFactsHotspot.Name);
+            ActionData showMediaAction = fishFactsHotspot.Action;
+            Assert.AreEqual(ActionType.ShowCard, showMediaAction.Type);
+            Assert.AreEqual("e0425739-701f-48b0-aea3-7371178fdc03", showMediaAction.EventData.Asset.FileData.Guid);
+            Assert.AreEqual("e0425739-701f-48b0-aea3-7371178fdc03", lesson.GetDownloadableFiles().Find(file => file.Guid == showMediaAction.EventData.Asset.FileData.Guid)?.Guid);
         }
 
         [UnityTest]

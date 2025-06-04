@@ -18,7 +18,7 @@ namespace AccessVR.OrchestrateVR.SDK
 
         public override List<DownloadableFileData> GetDownloadableFiles()
         {
-            List<DownloadableFileData> list = new();
+            List<DownloadableFileData> list = base.GetDownloadableFiles();
 
             list.AddRange(Questions
                 .Select(question => question.GetDownloadableFiles())

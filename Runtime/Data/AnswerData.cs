@@ -10,7 +10,7 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("id")] public string Id;
         [JsonProperty("answerText")] public string Text;
         [JsonProperty("correctAnswer")] public bool IsCorrect = false;
-        [JsonProperty("action")] public ActionData Action;
+        [JsonProperty("action")] public ActionData Action = ActionData.NoAction;
 
         public List<DownloadableFileData> GetDownloadableFiles()
         {

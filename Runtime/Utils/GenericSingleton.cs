@@ -30,7 +30,7 @@ namespace AccessVR.OrchestrateVR.SDK
             {
                 _instance = this as T;
 
-                if (this.transform.parent == null) 
+                if (transform.parent == null) 
                 {
                     DontDestroyOnLoad(gameObject);
                 }

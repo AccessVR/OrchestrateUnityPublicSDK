@@ -120,7 +120,7 @@ namespace AccessVR.OrchestrateVR.SDK
                     _thumbnailTexture = await Orchestrate.LoadTexture2D(ThumbnailFileData);
                 }
             }
-            return null;
+            return _thumbnailTexture;
         }
     }
 }

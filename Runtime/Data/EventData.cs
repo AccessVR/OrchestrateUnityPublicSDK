@@ -171,7 +171,7 @@ namespace AccessVR.OrchestrateVR.SDK
 
         public IEventView CreateView()
         {
-            if (_view == null)
+            if (_view == null || _view.IsDestroyed())
             {
                 _view = EventViewFactory.Make(this);
                 _view.Hide();
