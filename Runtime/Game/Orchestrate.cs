@@ -42,6 +42,8 @@ namespace AccessVR.OrchestrateVR.SDK
         private string _authToken;
 
         private string _userCode;
+
+        private List<LessonSummaryData> _cachedLessonSummaries;
         
 	    [CanBeNull]
         public static UserData User => GetUser();
@@ -199,31 +201,31 @@ namespace AccessVR.OrchestrateVR.SDK
 
         private NetworkReachability networkStatus;
         
-        private float testOfflineStateFrequency = 1.0f; // seconds
+        private float _testOfflineStateFrequency = 1.0f; // seconds
         
-        private float timeSinceLastOfflineStateTest = 0.0f;
+        private float _timeSinceLastOfflineStateTest = 0.0f;
         
-        private bool lastOfflineValue;
+        private bool _lastIsOfflineValue;
 
         public static string Version => "v" + Application.version + " / " + Application.unityVersion;
 
         public override void Awake()
         {
             base.Awake();
-            lastOfflineValue = Offline;
+            _lastIsOfflineValue = IsOffline;
         }
 
         private void Update()
         {
-            timeSinceLastOfflineStateTest += Time.deltaTime;
-            if (timeSinceLastOfflineStateTest > testOfflineStateFrequency)
+            _timeSinceLastOfflineStateTest += Time.deltaTime;
+            if (_timeSinceLastOfflineStateTest > _testOfflineStateFrequency)
             {
-                timeSinceLastOfflineStateTest = 0;
-                if (lastOfflineValue != Offline)
+                _timeSinceLastOfflineStateTest = 0;
+                if (_lastIsOfflineValue != IsOffline)
                 {
-                    offlineStateListeners.ForEach((listener) => listener.OnOfflineStateChanged(Offline, lastOfflineValue));
+                    offlineStateListeners.ForEach((listener) => listener.OnOfflineStateChanged(IsOffline, _lastIsOfflineValue));
                 }
-                lastOfflineValue = Offline;
+                _lastIsOfflineValue = IsOffline;
             }
         }
 
@@ -286,6 +288,7 @@ namespace AccessVR.OrchestrateVR.SDK
             get => getOfflineStateForString(PlayerPrefs.GetString("OfflineState"));
             set
             {
+	            bool lastOfflineValue = IsOffline;
                 if (value == OfflineStates.Online)
                 {
                     PlayerPrefs.SetString("OfflineState", "online");
@@ -302,7 +305,7 @@ namespace AccessVR.OrchestrateVR.SDK
             }
         }
         
-        public static bool Offline
+        public static bool IsOffline
         {
             get
             {
@@ -342,7 +345,7 @@ namespace AccessVR.OrchestrateVR.SDK
         {
 	        if (String.IsNullOrEmpty(GetAuthToken()))
 	        {
-		        if (!Offline)
+		        if (!IsOffline)
 		        {
 			        FireError(Error.NotAuthenticated);
 		        }
@@ -388,7 +391,7 @@ namespace AccessVR.OrchestrateVR.SDK
 				}
 			}
 			
-			if (!Offline)
+			if (!IsOffline)
 			{
 				if (!await Instance.IsLoggedIn())
 				{
@@ -437,6 +440,8 @@ namespace AccessVR.OrchestrateVR.SDK
 			LessonData lesson = await CreateClient().GetLesson(lookup);
 			StringUtils.AssertNotNullOrEmpty(lesson.Guid);
 			WriteCache(lesson.FileData, JsonConvert.SerializeObject(lesson));
+			Debug.Log("Clearing stored list of cached lessons");
+			Instance._cachedLessonSummaries = null;
 			return lesson;
 		}
 
@@ -538,6 +543,10 @@ namespace AccessVR.OrchestrateVR.SDK
 				File.Delete(legacyCachePath);
 			}
 			DeleteCache(lesson.FileData);
+			if (Instance._cachedLessonSummaries != null)
+			{
+				Instance._cachedLessonSummaries.RemoveAll((summary) => summary.Guid == lesson.Guid);
+			}
 		}
 
 		public static void DeleteCache(FileData file)
@@ -548,7 +557,7 @@ namespace AccessVR.OrchestrateVR.SDK
 				File.Delete(legacyCachePath);
 			}
 			string cachePath = GetNewCachePath(file);
-			if (File.Exists(legacyCachePath))
+			if (File.Exists(cachePath))
 			{
 				File.Delete(cachePath);
 			}
@@ -559,7 +568,7 @@ namespace AccessVR.OrchestrateVR.SDK
 			return path.Split('/').Last();
 		}
 
-		private static List<LessonData> GetLegacyCachedLessons()
+		private static List<LessonSummaryData> GetLegacyCachedLessons()
 		{
 			List<string> envList = new List<string>
 			{
@@ -573,41 +582,53 @@ namespace AccessVR.OrchestrateVR.SDK
 			return Directory.GetDirectories(Application.persistentDataPath)
 				.Where(dir => envList.Find(env => env == dir) == null)
 				.Select(dir =>
-					CacheContainsLessonAndDownloadables(GetGuidFromDirectoryPath(dir))
-						? LoadCachedLesson(GetGuidFromDirectoryPath(dir))
-						: null)
+				{
+					if (File.Exists(Path.Combine(dir, "content.json")))
+					{
+						return LoadCachedLesson(GetGuidFromDirectoryPath(dir));
+					}
+					return null;
+				})
 				.Where(lesson => lesson != null)
 				.OrderBy(lesson => lesson.Name)
+				.Select(lesson => lesson.Summary)
 				.ToList();
 		}
 
-		private static List<LessonData> GetCachedLessonsForEnvironment(Environment environment)
+		private static List<LessonSummaryData> GetCachedLessonsForEnvironment(Environment environment)
 		{
-			string path = Path.Combine(Application.persistentDataPath, environment.ToString().ToLower());
+			string path = Path.Combine(Application.persistentDataPath, environment.ToString().ToLower(), typeof(LessonData).ToString());
 			if (!Directory.Exists(path))
 			{
 				return new();
 			}
 			
 			return Directory.GetDirectories(path)
-				.Select(dir => 
-					CacheContainsLessonAndDownloadables(GetGuidFromDirectoryPath(dir)) 
-						? LoadCachedLesson(GetGuidFromDirectoryPath(dir)) 
-						: null)
+				.Select(dir =>
+				{
+					if (File.Exists(Path.Combine(dir, "content.json")))
+					{
+						return LoadCachedLesson(GetGuidFromDirectoryPath(dir));
+					}
+					return null;
+				})
 				.Where(lesson => lesson != null)
 				.OrderBy(lesson => lesson.Name)
+				.Select(lesson => lesson.Summary)
 				.ToList();
 		}
 		
-		public static List<LessonData> GetCachedLessonList()
+		public static List<LessonSummaryData> GetCachedLessonList()
 		{
-			List<LessonData> lessons = new List<LessonData>();
-			
-			lessons.AddRange(GetCachedLessonsForEnvironment(Orchestrate.GetEnvironment()));
-			
-			lessons.AddRange(GetLegacyCachedLessons());
-
-			return lessons;
+			if (Instance._cachedLessonSummaries == null)
+			{
+				Debug.Log("GetCachedLessonList: building list");
+				List<LessonSummaryData> lessons = new ();
+				lessons.AddRange(GetCachedLessonsForEnvironment(GetEnvironment()));
+				lessons.AddRange(GetLegacyCachedLessons());
+				Instance._cachedLessonSummaries = lessons;	
+			}
+			return Instance._cachedLessonSummaries;
 		}
 
 		public async UniTaskVoid LoadSkybox()
@@ -630,7 +651,7 @@ namespace AccessVR.OrchestrateVR.SDK
 				sessionListeners.ForEach((handler) => handler.OnUserCode(_userCode));
 			} catch (HttpRequestException e)
             {
-                if (Offline)
+                if (IsOffline)
                 {
 	                FireError(Error.InternetRequired);
                 }
@@ -700,8 +721,8 @@ namespace AccessVR.OrchestrateVR.SDK
 
 		private static string GetNewCachePath(FileData file)
 		{
-			// New Cache path is {file.Env}/{file.Guid}/{file.Name}
-			return Path.Combine(Application.persistentDataPath, StringUtils.ReplaceSpaces(file.Env.ToLower()), file.Guid, StringUtils.ReplaceSpaces(file.Name));
+			// New Cache path is {file.Env}/{file.Type}/{file.Guid}/{file.Name}
+			return Path.Combine(Application.persistentDataPath, StringUtils.ReplaceSpaces(file.Env.ToLower()), file.Type.ToString(), file.Guid, StringUtils.ReplaceSpaces(file.Name));
 		}
 
 		private static string GetLegacyCachePath(FileData file)
@@ -749,6 +770,20 @@ namespace AccessVR.OrchestrateVR.SDK
 			File.WriteAllText(GetNewCachePath(file), contents);
 		}
 
+		public static string EncodeCachedBytes([CanBeNull] FileData file)
+		{
+			if (file == null)
+			{
+				return null;
+			}
+			return Convert.ToBase64String(ReadCachedBytes(file));
+		}
+
+		public static byte[] ReadCachedBytes(FileData file)
+		{
+			return File.ReadAllBytes(GetCachePath(file));
+		}
+		
 		public static string ReadCache(FileData file)
 		{
 			return ReadCache(GetCachePath(file));

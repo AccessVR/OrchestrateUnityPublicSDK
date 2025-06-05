@@ -1,3 +1,4 @@
+using System;
 using JetBrains.Annotations;
 
 namespace AccessVR.OrchestrateVR.SDK
@@ -10,6 +11,8 @@ namespace AccessVR.OrchestrateVR.SDK
         
         protected string _env;
         
+        protected Type _type;
+        
         protected string _name;
         
         protected FileData _parent;
@@ -20,28 +23,31 @@ namespace AccessVR.OrchestrateVR.SDK
         
         public string Name => _name;
         
+        public Type Type => _type;
+        
         public FileData Parent => _parent;
 
         public int Retries = 0;
 
-        public FileData([NotNull] string env, [NotNull] string guid, [NotNull] string name)
+        public FileData([NotNull] string env, [NotNull] Type type, [NotNull] string guid, [NotNull] string name)
         {
             _env = env;
+            _type = type;
             _guid = guid;
             _name = name;
         }
         
-        public FileData([NotNull] Environment env, [NotNull] string guid, [NotNull] string name) : this(env.ToString(), guid, name)
+        public FileData([NotNull] Environment env, [NotNull] Type type, [NotNull] string guid, [NotNull] string name) : this(env.ToString(), type, guid, name)
         {
             //
         }
         
-        public FileData([NotNull] string env, [NotNull] string guid, [NotNull] string name, [NotNull] FileData parent) : this(env, guid, name)
+        public FileData([NotNull] string env, [NotNull] Type type, [NotNull] string guid, [NotNull] string name, [NotNull] FileData parent) : this(env, type, guid, name)
         {
             _parent = parent;
         }
         
-        public FileData([NotNull] Environment env, [NotNull] string guid, [NotNull] string name, [NotNull] FileData parent) : this(env.ToString(), guid, name, parent)
+        public FileData([NotNull] Environment env, [NotNull] Type type, [NotNull] string guid, [NotNull] string name, [NotNull] FileData parent) : this(env.ToString(), type, guid, name, parent)
         {
             //
         }

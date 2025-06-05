@@ -37,7 +37,7 @@ namespace AccessVR.OrchestrateVR.SDK
 
 		private IEnumerator StartNextDownload(DownloadJob job)
 		{
-			if (Orchestrate.Offline)
+			if (Orchestrate.IsOffline)
 			{
 				job.FireFailure(Error.InternetRequired);
 			}

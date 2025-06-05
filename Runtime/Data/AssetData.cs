@@ -45,6 +45,7 @@ namespace AccessVR.OrchestrateVR.SDK
                     return new DownloadableFileData(
                         Orchestrate.GetCdnUrl(assetPath.ToString()), 
                         assetPath.Env,
+                        GetType(),
                         assetPath.Guid, 
                         assetPath.Name, 
                         GetParentScene().GetParentLesson().FileData
@@ -54,6 +55,7 @@ namespace AccessVR.OrchestrateVR.SDK
                 return new DownloadableFileData(
                     Orchestrate.GetCdnUrl(assetPath.ToString()), 
                     assetPath.Env,
+                    GetType(),
                     assetPath.Guid, 
                     assetPath.Name
                 );    
@@ -74,6 +76,7 @@ namespace AccessVR.OrchestrateVR.SDK
                         return new DownloadableFileData(
                             Orchestrate.GetCdnUrl(assetPath.ToString()),
                             assetPath.Env,
+                            GetType(),
                             assetPath.Guid, 
                             assetPath.Name, 
                             GetParentScene().GetParentLesson().FileData
@@ -83,6 +86,7 @@ namespace AccessVR.OrchestrateVR.SDK
                     return new DownloadableFileData(
                         Orchestrate.GetCdnUrl(assetPath.ToString()),
                         assetPath.Env,
+                        GetType(),
                         assetPath.Guid,  
                         assetPath.Name
                     );    

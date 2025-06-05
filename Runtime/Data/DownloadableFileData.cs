@@ -1,4 +1,5 @@
 using JetBrains.Annotations;
+using System;
 
 namespace AccessVR.OrchestrateVR.SDK
 {
@@ -6,12 +7,12 @@ namespace AccessVR.OrchestrateVR.SDK
     {
         public string Url => _url;
         
-        public DownloadableFileData([NotNull] string url, [NotNull] string env, [NotNull] string guid, [NotNull] string name) : base(env, guid, name)
+        public DownloadableFileData([NotNull] string url, [NotNull] string env, [NotNull] Type type, [NotNull] string guid, [NotNull] string name) : base(env, type, guid, name)
         {
             _url = url;
         }
         
-        public DownloadableFileData([NotNull] string url, [NotNull] string env, [NotNull] string guid, [NotNull] string name, [NotNull] FileData parent) : base(env, guid, name, parent)
+        public DownloadableFileData([NotNull] string url, [NotNull] string env, [NotNull] Type type, [NotNull] string guid, [NotNull] string name, [NotNull] FileData parent) : base(env, type, guid, name, parent)
         {
             _url = url;
         }
