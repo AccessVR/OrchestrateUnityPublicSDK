@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System;
+using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using JetBrains.Annotations;
@@ -28,14 +29,29 @@ namespace AccessVR.OrchestrateVR.SDK
 		[JsonProperty("scenes")] public List<SceneData> Scenes = new();
 		
 		[JsonIgnore]
-		public LessonSummaryData Summary => new ()
+		public LessonSummaryData Summary
 		{
-			Id = Id,
-			Name = Name,
-			Guid = Guid,
-			ThumbnailEncoded = Orchestrate.EncodeCachedBytes(Thumbnail?.ThumbnailFileData)
-		};
-		
+			get
+			{
+				
+				LessonSummaryData summary = new LessonSummaryData
+				{
+					Id = Id,
+					Name = Name,
+					Guid = Guid,
+				};
+				try
+				{
+					summary.ThumbnailEncoded = Orchestrate.EncodeCachedBytes(Thumbnail?.ThumbnailFileData);
+				}
+				catch (IOException e)
+				{
+					// ignore
+				}
+				return summary;
+			}
+		}
+
 		[JsonIgnore] [CanBeNull] public SceneData InitialScene => Scenes.First(scene => scene.Id == InitialSceneId);
 
 		[JsonIgnore] [CanBeNull] public AssetData Thumbnail => InitialScene?.Thumbnail;
