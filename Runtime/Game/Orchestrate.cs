@@ -758,15 +758,15 @@ namespace AccessVR.OrchestrateVR.SDK
 			return request;
 		}
 
-		protected static void CreateCacheDirectory(FileData file)
+		protected static void CreateCacheDirectory(FileData file, bool forceUseNewCachePath = false)
 		{
-			string cachePath = GetCachePath(file);
+			string cachePath = forceUseNewCachePath ? GetNewCachePath(file) : GetCachePath(file);
 			Directory.CreateDirectory(cachePath.Substring(0, cachePath.LastIndexOf("/") + 1));
 		}
 
 		public static void WriteCache(FileData file, string contents)
 		{
-			CreateCacheDirectory(file);
+			CreateCacheDirectory(file, true);
 			File.WriteAllText(GetNewCachePath(file), contents);
 		}
 
