@@ -1,3 +1,4 @@
+using System;
 using JetBrains.Annotations;
 using Newtonsoft.Json.Linq;
 
@@ -31,11 +32,12 @@ namespace AccessVR.OrchestrateVR.SDK
 	        EventData eventData = eventType switch
 	        {
 		        1 => json.ToObject<MediaEventData>(),
-		        2 => json.ToObject<InfoEventData>(),
+		        2 => json.ToObject<InfoEventData>(), // TODO: shouldn't this be media?
 		        3 => json.ToObject<QuestionEventData>(),
+		        4 => json.ToObject<MediaEventData>(), // old video type
 		        5 => json.ToObject<HotspotEventData>(),
 		        6 => json.ToObject<MediaEventData>(),
-		        _ => null
+		        _ => throw new Exception("Unknown event type: " + eventType)
 	        };
 
 	        eventData?.SetIsActionEvent(isActionEvent);
