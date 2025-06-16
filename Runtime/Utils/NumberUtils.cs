@@ -30,5 +30,15 @@ namespace AccessVR.OrchestrateVR.SDK
             }
             return true;
         }
+
+        public static bool AreApproximatelyEqual(float a, float b, float tolerance = 1e-5f)
+        {
+            return Math.Abs(a - b) <= tolerance;
+        }
+
+        public static bool AreApproximatelyEqual(double a, double b, float tolerance = 1e-5f)
+        {
+            return Math.Abs(a - b) <= tolerance;
+        }
     }
 }
