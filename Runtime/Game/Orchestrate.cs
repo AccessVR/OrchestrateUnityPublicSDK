@@ -35,6 +35,8 @@ namespace AccessVR.OrchestrateVR.SDK
 
         private LessonData _activeExperience;
         
+        private int _activeAssignmentId;
+        
 	    private List<LessonData> _cachedLessons;
         
         private UserData _user;
@@ -89,6 +91,11 @@ namespace AccessVR.OrchestrateVR.SDK
             Instance._activeExperience = experience;
         }
 
+        public static void SetActiveAssignmentId(int assignmentId)
+        {
+	        Instance._activeAssignmentId = assignmentId;
+        }
+
         public static void SetUser(UserData user)
         {
             Instance._user = user;
@@ -102,6 +109,11 @@ namespace AccessVR.OrchestrateVR.SDK
         public static LessonData GetActiveExperience()
         {
             return Instance._activeExperience;
+        }
+
+        public static int GetActiveAssignmentId()
+        {
+	        return Instance._activeAssignmentId;
         }
 
         public static string GetBaseUrl([CanBeNull] string path = null)
@@ -685,11 +697,11 @@ namespace AccessVR.OrchestrateVR.SDK
 			}
 		}
 
-		public static async UniTask<SubmissionData> Submit(LessonData lesson)
+		public static async UniTask<SubmissionData> Submit(SubmissionData submission)
 		{
-			SubmissionData submission = await CreateClient().Submit(lesson);
-			Instance.sessionListeners.ForEach((handler) => handler.onSubmission(submission));
-			return submission;
+			SubmissionData output = await CreateClient().Submit(submission);
+			Instance.sessionListeners.ForEach((handler) => handler.OnSubmission(output));
+			return output;
 		}
 
 		public static async UniTask<Texture2D> LoadTexture2D(FileData file)

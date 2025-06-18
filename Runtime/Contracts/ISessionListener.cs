@@ -16,7 +16,7 @@ namespace AccessVR.OrchestrateVR.SDK
 
         public void OnSkybox(string skyboxPath);
 
-        public void onSubmission(SubmissionData submission);
+        public void OnSubmission(SubmissionData submission);
 
     }
 }

@@ -5,8 +5,10 @@ using System.Net.Http;
 using Cookie = System.Net.Cookie;
 using BaseHttpClient = System.Net.Http.HttpClient;
 using System.Collections.Generic;
+using System.Text;
 using Cysharp.Threading.Tasks;
 using JetBrains.Annotations;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace AccessVR.OrchestrateVR.SDK
@@ -135,20 +137,16 @@ namespace AccessVR.OrchestrateVR.SDK
 			return lessonData;
         }
 
-        public async UniTask<SubmissionData> Submit(LessonData lesson)
+        public async UniTask<SubmissionData> Submit(SubmissionData submission)
         {
-	        // var content = new StringContent("{\"LessonSubmission\":{\"AssignmentId\":\"" + Orchestrate.Instance.currentAssignment?.guid + "\", \"LessonId\":\"" + lessonData.Id + "\",\"LearnerId\":\"" + User.UserId + "\",\"LearnerName\":\"" + User.DisplayName + "\", \"Score\":\"" + lessonData.Score + "\" , \"CompletedOn\":\"" + DateTime.Now.ToString("U") + "\"}}", System.Text.Encoding.UTF8, "application/json");
-			
-			// TODO: build content from lesson object
-			StringContent content = new StringContent("{}");
-
-			//Debug.Log("Record scores " + content);
-
-			HttpResponseMessage response = await PostAsync(Url("/api/rest/lesson-submission/create"), content);
+	        string payload = JsonConvert.SerializeObject(submission);
+	        StringContent encodedPayload = new StringContent(payload, Encoding.UTF8, "application/json");
+	        Debug.Log(payload);
+	        string url = Url("/api/rest/lesson-submission/create");
+	        Debug.Log(url);
+	        HttpResponseMessage response = await PostAsync(url, encodedPayload);
 			string responseBody = await HttpUtils.AssertSuccessfulResponse(response);
-
-			// TODO: build new SubmissionData record to capture changes in response
-			return new SubmissionData();
+			return JsonConvert.DeserializeObject<SubmissionData>(responseBody);
         }
 
     }
