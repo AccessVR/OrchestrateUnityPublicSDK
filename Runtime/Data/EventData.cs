@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
+using JetBrains.Annotations;
 using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.Events;
@@ -147,6 +148,11 @@ namespace AccessVR.OrchestrateVR.SDK
             {
                 _pausePlayback = true;
             }
+        }
+
+        public bool HasAsset()
+        {
+            return Asset != null;
         }
 
         public void SetIsActionEvent(bool isActionEvent)

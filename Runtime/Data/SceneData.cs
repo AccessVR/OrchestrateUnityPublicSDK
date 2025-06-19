@@ -28,7 +28,7 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("duration")] public float Duration = 0.0f;
         
         [JsonProperty("showInSceneList")] public bool ShowInSceneList = true;
-        [JsonProperty("thumbnailAsset")] public AssetData Thumbnail;
+        [JsonProperty("thumbnailAsset")] public AssetData _thumbnail;
         [JsonProperty("endAction")] public ActionData EndAction = ActionData.NoAction;
         [JsonProperty("initialView")] public InitialViewData InitialView;
         
@@ -38,6 +38,27 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonIgnore] public List<EventData> TimedEvents;
         [JsonIgnore] private LessonData _parentLesson;
         [JsonIgnore] public ScreenType ScreenType;
+
+        [JsonIgnore]
+        public AssetData Thumbnail
+        {
+            get
+			{
+				// allow Thumbnail to be explicit
+				if (_thumbnail != null)
+                {
+                    return _thumbnail;
+                }
+                
+				// implicit Thumbnail when Scene has an image Skybox
+				if ((bool) Skybox.IsImage())
+				{
+					return Skybox;
+				}
+				
+                return null;
+			}
+        }
         
         [JsonIgnore] public List<EventData> SortedTimedEvents
         {

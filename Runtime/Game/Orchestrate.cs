@@ -116,6 +116,20 @@ namespace AccessVR.OrchestrateVR.SDK
 	        return Instance._activeAssignmentId;
         }
 
+        public static bool HasNativeKeyboard()
+        {
+	        return Application.platform == RuntimePlatform.IPhonePlayer;
+        }
+        
+        public static bool IsTouchscreenPlayer() 
+        {
+	        bool assumeIPhonePlayer = false;
+	        #if UNITY_IOS
+				assumeIPhonePlayer = true;
+			#endif
+	        return assumeIPhonePlayer || Application.platform == RuntimePlatform.IPhonePlayer;
+        }
+
         public static string GetBaseUrl([CanBeNull] string path = null)
         {
 	        if (Is(Environment.Custom) && !String.IsNullOrEmpty(Instance._customBaseUrl))

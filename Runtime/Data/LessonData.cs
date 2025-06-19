@@ -54,27 +54,8 @@ namespace AccessVR.OrchestrateVR.SDK
 
 		[JsonIgnore] [CanBeNull] public SceneData InitialScene => Scenes.First(scene => scene.Id == InitialSceneId);
 
-		[JsonIgnore] [CanBeNull] public AssetData Thumbnail
-		{
-			get
-			{
-				// TODO: probably move this logic into SceneData
-				
-				// allow Thumbnail to be explicit
-				if (InitialScene?.Thumbnail != null)
-				{
-					return InitialScene.Thumbnail;
-				}
-				// implicit Thumbnail when Scene has an image Skybox
-				if ((bool) InitialScene?.Skybox.IsImage())
-				{
-					return InitialScene.Skybox;
-				}
-				
-                return null;
-			}
-		}
-
+		[JsonIgnore] [CanBeNull] public AssetData Thumbnail => InitialScene?.Thumbnail;
+		
 		public List<DownloadableFileData> GetDownloadableFiles()
 		{
 			return Scenes.Select(scene => scene.GetDownloadableFiles())
