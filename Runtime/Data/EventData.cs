@@ -83,6 +83,11 @@ namespace AccessVR.OrchestrateVR.SDK
 
         protected EventData() { }
 
+        public virtual void AfterDeserialized(StreamingContext context)
+        {
+            //
+        }
+
         [OnDeserialized]
         internal void OnDeserialized(StreamingContext context)
         {

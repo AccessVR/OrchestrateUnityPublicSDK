@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.Linq;
+using System.Runtime.Serialization;
 
 namespace AccessVR.OrchestrateVR.SDK
 {
@@ -13,6 +14,12 @@ namespace AccessVR.OrchestrateVR.SDK
         {
             base.SetParentScene(scene);
             Hotspots.ForEach(hotspot => hotspot.SetParentScene(scene));
+        }
+
+        public override void AfterDeserialized(StreamingContext context)
+        {
+            base.AfterDeserialized(context);
+            Hotspots.ForEach(hotspot => hotspot.AlwaysShowLabel = AlwaysShowLabels);
         }
         
         public override List<DownloadableFileData> GetDownloadableFiles()

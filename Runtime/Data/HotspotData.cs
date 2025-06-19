@@ -19,9 +19,9 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("action")] public ActionData Action = ActionData.NoAction;
         [FormerlySerializedAs("acknowledged")] [JsonProperty("acknowledged")] public bool Acknowledged = false;
         [FormerlySerializedAs("confirm")] [JsonProperty("confirm")] public bool Confirm = true;
-        [FormerlySerializedAs("alwaysShowLabel")] [JsonProperty("alwaysShowLabel")] public bool AlwaysShowLabel = true;
         [JsonProperty("backgroundColor")] public string _backgroundColor;
-
+        public bool AlwaysShowLabel = false;
+        
         [JsonIgnore] public Color? BackgroundColor;
 
         [OnDeserialized]
