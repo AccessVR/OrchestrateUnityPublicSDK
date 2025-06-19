@@ -142,7 +142,7 @@ namespace AccessVR.OrchestrateVR.SDK
 		
 		public static string ProfileUrl()
 		{
-			return ProfileUrl(User.UserId);
+			return GetUrl("/profile");
 		}
 
 		public static string ProfileUrl(string userId)
