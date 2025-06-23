@@ -5,8 +5,6 @@ namespace AccessVR.OrchestrateVR.SDK
 {
     public class FileData
     {
-        protected string _url;
-        
         protected string _guid;
         
         protected string _env;
@@ -28,7 +26,17 @@ namespace AccessVR.OrchestrateVR.SDK
         public FileData Parent => _parent;
 
         public int Retries = 0;
-
+        
+        public FileData LegacyWebFileData
+        {
+            get
+            {
+                string ext = StringUtils.AfterLast(Name, ".");
+                string name = StringUtils.BeforeLast(Name, ".");
+                return new(Env, Type, Guid, $"{name}_web.{ext}", Parent);
+            }
+        }
+      
         public FileData([NotNull] string env, [NotNull] Type type, [NotNull] string guid, [NotNull] string name)
         {
             _env = env;

@@ -11,6 +11,26 @@ namespace AccessVR.OrchestrateVR.SDK
 			return content.Replace(" ", "-").Replace("%20", "-");
 		}
 
+		public static string Before(string content, string separator)
+		{
+			return content.Substring(0, content.IndexOf(separator));
+		}
+		
+		public static string BeforeLast(string content, string separator)
+		{
+			return content.Substring(0, content.LastIndexOf(separator));
+		}
+
+		public static string After(string content, string separator)
+		{
+			return content.Substring(content.IndexOf(separator) + separator.Length);
+		}
+		
+		public static string AfterLast(string content, string separator)
+		{
+			return content.Substring(content.LastIndexOf(separator) + separator.Length);
+		}
+		
 		public static string MakeDirectorySeparatorsConsistent(string path)
 		{
 			// Windows doesn't like backslashes, even though Path.DirectorySeparatorChar is a backslash...

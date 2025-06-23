@@ -10,7 +10,7 @@ namespace AccessVR.OrchestrateVR.SDK
 		public static async UniTask<Texture2D> LoadTexture2D(string path)
 		{
 			string uri = "file://" + path;
-            Debug.Log("Loading Texture from " + uri);
+            // Debug.Log("Loading Texture from " + uri);
             UnityWebRequest request = UnityWebRequestTexture.GetTexture(uri, true);
             await request.SendWebRequest();
             if (request.isDone)

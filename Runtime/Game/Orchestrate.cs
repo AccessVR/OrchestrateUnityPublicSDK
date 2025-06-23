@@ -741,6 +741,12 @@ namespace AccessVR.OrchestrateVR.SDK
 			{
 				return legacyCachePath;
 			}
+			// Look for web-formatted legacy cache
+			string legacyWebCachePath = GetLegacyCachePath(file.LegacyWebFileData);
+			if (File.Exists(legacyWebCachePath))
+			{
+				return legacyWebCachePath;
+			}
 			// Fall back on new cache path
 			return newCachePath;
 		}
