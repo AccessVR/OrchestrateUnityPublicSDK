@@ -14,6 +14,8 @@ namespace AccessVR.OrchestrateVR.SDK
         protected string _name;
         
         protected FileData _parent;
+
+        protected string _contents;
         
         public string Guid => _guid;
         
@@ -24,6 +26,8 @@ namespace AccessVR.OrchestrateVR.SDK
         public Type Type => _type;
         
         public FileData Parent => _parent;
+
+        public string Contents => _contents;
 
         public int Retries = 0;
         
@@ -73,6 +77,18 @@ namespace AccessVR.OrchestrateVR.SDK
             if (obj == null || obj.GetType() != this.GetType()) return false;
 
             return Orchestrate.GetCachePath(this) == Orchestrate.GetCachePath((FileData) obj);
+        }
+
+        public FileData WithContents(string content)
+        {
+            _contents = content;
+            return this;
+        }
+
+        public FileData WithParent(FileData parent)
+        {
+            _parent = parent;
+            return this;
         }
 
         public override string ToString()

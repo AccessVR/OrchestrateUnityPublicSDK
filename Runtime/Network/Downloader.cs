@@ -45,51 +45,59 @@ namespace AccessVR.OrchestrateVR.SDK
 			if (job.IsCancelled) yield break;
 			
 			DownloadableFileData file = job.NextFileData;
-			
+
 			if (file != null)
 			{
-				bool error = false;
-				UnityWebRequest request  = Orchestrate.MakeCacheRequest(file);
-				UnityWebRequestAsyncOperation operation = request.SendWebRequest();
+				if (!string.IsNullOrEmpty(file.Contents))
+				{
+					Orchestrate.WriteCache(file, file.Contents);;
+					StartCoroutine(StartNextDownload(job));
+				}
+				else
+				{
+					bool error = false;
+					UnityWebRequest request  = Orchestrate.MakeCacheRequest(file);
+					UnityWebRequestAsyncOperation operation = request.SendWebRequest();
 
-				while (!operation.isDone)
-				{
-					if (job.IsCancelled)
+					while (!operation.isDone)
 					{
-						request.Abort();
-						yield break;
+						if (job.IsCancelled)
+						{
+							request.Abort();
+							yield break;
+						}
+						job.FireProgress(request.downloadProgress);
+						yield return null;
 					}
-					job.FireProgress(request.downloadProgress);
-					yield return null;
-				}
-					
-				if (request.result != UnityWebRequest.Result.Success)
-				{
-					// TODO: get more information about the failure
-					OnDownloadError(job, file, new Error($"Failed to download File {file.Url}"));
-					error = true;
-				}
-					
-				if (!error)
-				{
-					try
-					{
-						Orchestrate.FinalizeTempCache(file);
-						Debug.Log($"Downloaded {file}");
 						
-						if (!job.IsComplete && !job.IsCancelled)
-						{
-							StartCoroutine(StartNextDownload(job));
-						}
-						else if (!job.IsCancelled)
-						{
-							job.TryFireComplete();
-							_queue.Remove(job);
-						}
-					}
-					catch (IOException e)
+					if (request.result != UnityWebRequest.Result.Success)
 					{
-						job.FireFailure(new Error(e));
+						// TODO: get more information about the failure
+						OnDownloadError(job, file, new Error($"Failed to download File {file.Url}"));
+						error = true;
+					}
+						
+					if (!error)
+					{
+						try
+						{
+							Orchestrate.FinalizeTempCache(file);
+							Debug.Log($"Downloaded {file}");
+							
+							if (!job.IsComplete && !job.IsCancelled)
+							{
+								StartCoroutine(StartNextDownload(job));
+							}
+							else if (!job.IsCancelled)
+							{
+								job.TryFireComplete();
+								_queue.Remove(job);
+							}
+						}
+						catch (IOException e)
+						{
+							job.FireFailure(new Error(e));
+						}
 					}
 				}
 			}

@@ -115,7 +115,7 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
             Assert.AreEqual(DisplayTypeOptions.HUD, textEventData.DisplayType);;
             Assert.AreEqual("Continue", textEventData.ButtonText);
             
-            // Media event
+            // Media event 1
             EventData mediaEventData = lesson.InitialScene.SortedTimedEvents[1];
             Assert.AreEqual(typeof(MediaEventData), mediaEventData.GetType());
             Assert.IsTrue(mediaEventData.Asset.IsImage());
@@ -124,6 +124,18 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
             Assert.AreEqual(Orchestrate.GetCdnUrl("local/7974964c-adef-4ff5-8096-471c56dffc09/360-icon_editor.jpg"), mediaEventData.Asset.FileData.Url);
             Assert.AreEqual(lesson.Guid, mediaEventData.Asset.FileData.Parent.Guid);
             Assert.IsFalse(mediaEventData.MuteAudio);
+            
+            // Media event 2
+            mediaEventData = lesson.InitialScene.SortedTimedEvents[2];
+            Assert.AreEqual(typeof(MediaEventData), mediaEventData.GetType());
+            Assert.IsTrue(mediaEventData.Asset.IsVideo());
+            Assert.IsFalse(mediaEventData.IsActionEvent());
+            Assert.AreEqual("9b0195eb-d7b9-486e-9eeb-af3e8222d415", mediaEventData.Asset.FileData.Guid);
+            Assert.AreEqual(Orchestrate.GetCdnUrl("local/9b0195eb-d7b9-486e-9eeb-af3e8222d415/IL-power_1.mp4"), mediaEventData.Asset.FileData.Url);
+            Assert.AreEqual(lesson.Guid, mediaEventData.Asset.FileData.Parent.Guid);
+            Assert.IsFalse(mediaEventData.MuteAudio);
+            Assert.AreEqual(2, mediaEventData.Asset.Subtitles.Count);
+            Assert.IsTrue(mediaEventData.Asset.HasSubtitles());
             
             // Hotspot event
             HotspotEventData hotspotEventData = (HotspotEventData) lesson.InitialScene.SortedTimedEvents[3];

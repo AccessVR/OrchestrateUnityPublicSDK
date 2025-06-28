@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 using JetBrains.Annotations;
 
 namespace AccessVR.OrchestrateVR.SDK
@@ -19,6 +20,7 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("path")] public string path;
         [JsonProperty("originalPath")] public string originalPath;
         [JsonProperty("thumbnailPath")] public string thumbnailPath;
+        [JsonProperty("subtitles")] public List<TranscriptData> Subtitles;
         
         private Texture2D _texture;
         
@@ -29,6 +31,34 @@ namespace AccessVR.OrchestrateVR.SDK
         public bool IsImage() => assetTypeId == 5;
         public bool IsVideo() => assetTypeId == 6;
         public bool IsAudioOrVideo() => IsAudio() || IsVideo();
+        public bool HasSubtitles() => SrtSubtitles != null && !string.IsNullOrEmpty(SrtSubtitles.Content);
+        public TranscriptData SrtSubtitles => Subtitles.FirstOrDefault(transcript => transcript.Format == TranscriptFormat.SRT);
+        
+        [JsonIgnore]
+        public DownloadableFileData SubtitlesFileData
+        {
+            get
+            {
+                AssetPath assetPath = AssetPath.Make(path);
+                
+                DownloadableFileData subtitlesFileData = new (
+                    "subtitles.srt", 
+                    assetPath.Env,
+                    GetType(), 
+                    AssetPath.Make(path).Guid, 
+                    "subtitles.srt"
+                );
+                    
+                if (GetParentScene()?.GetParentLesson() != null)
+                {
+                    subtitlesFileData.WithParent(GetParentScene().GetParentLesson().FileData);   
+                }
+
+                subtitlesFileData.WithContents(SrtSubtitles.Content);
+
+                return subtitlesFileData;
+            }
+        }
 
         [JsonIgnore] public DownloadableFileData FileData
         {
@@ -40,25 +70,20 @@ namespace AccessVR.OrchestrateVR.SDK
                     assetPath = AssetPath.Make(originalPath);
                 }
 
-                if (GetParentScene()?.GetParentLesson() != null)
-                {
-                    return new DownloadableFileData(
-                        Orchestrate.GetCdnUrl(assetPath.ToString()), 
-                        assetPath.Env,
-                        GetType(),
-                        assetPath.Guid, 
-                        assetPath.Name, 
-                        GetParentScene().GetParentLesson().FileData
-                    );    
-                }
-                
-                return new DownloadableFileData(
-                    Orchestrate.GetCdnUrl(assetPath.ToString()), 
+                DownloadableFileData fileData = new DownloadableFileData(
+                    Orchestrate.GetCdnUrl(assetPath.ToString()),
                     assetPath.Env,
                     GetType(),
-                    assetPath.Guid, 
+                    assetPath.Guid,
                     assetPath.Name
-                );    
+                );
+                
+                if (GetParentScene()?.GetParentLesson() != null)
+                {
+                    fileData.WithParent(GetParentScene().GetParentLesson().FileData);   
+                }
+                
+                return fileData;;    
             }
         }
 
@@ -102,6 +127,11 @@ namespace AccessVR.OrchestrateVR.SDK
             if (HasThumbnail())
             {
                 files.Add(ThumbnailFileData);
+            }
+
+            if (HasSubtitles())
+            {
+                files.Add(SubtitlesFileData);
             }
             return files;
         }
