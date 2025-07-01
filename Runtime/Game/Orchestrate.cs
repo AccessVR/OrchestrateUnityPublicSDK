@@ -439,10 +439,15 @@ namespace AccessVR.OrchestrateVR.SDK
 		public static void Logout()
 		{
 			SetAuthToken(null);
+			Debug.Log("Logout / SethAuthToken(null)");
 			SetUser(null);
+			Debug.Log("Logout / SetUser(null)");
 			PlayerPrefs.DeleteAll();
+			Debug.Log("Logout / PlayerPrefs.DeleteAll()");
 			PlayerPrefs.Save();
+			Debug.Log("Logout / PlayerPrefs.Save()");
 			Instance.sessionListeners.ForEach((handler) => handler.OnLogout());
+			Debug.Log("Logout / sessionListeners.OnLogOut()");
 		}
         
         public static Dictionary<string, string> GetSettings()
