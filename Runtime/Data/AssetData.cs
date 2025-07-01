@@ -32,7 +32,7 @@ namespace AccessVR.OrchestrateVR.SDK
         public bool IsVideo() => assetTypeId == 6;
         public bool IsAudioOrVideo() => IsAudio() || IsVideo();
         public bool HasSubtitles() => SrtSubtitles != null && !string.IsNullOrEmpty(SrtSubtitles.Content);
-        public TranscriptData SrtSubtitles => Subtitles.FirstOrDefault(transcript => transcript.Format == TranscriptFormat.SRT);
+        public TranscriptData SrtSubtitles => Subtitles?.FirstOrDefault(transcript => transcript.Format == TranscriptFormat.SRT);
         
         [JsonIgnore]
         public DownloadableFileData SubtitlesFileData
