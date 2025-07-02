@@ -39,26 +39,7 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonIgnore] private LessonData _parentLesson;
         [JsonIgnore] public ScreenType ScreenType;
 
-        [JsonIgnore]
-        public AssetData Thumbnail
-        {
-            get
-			{
-				// allow Thumbnail to be explicit
-				if (_thumbnail != null)
-                {
-                    return _thumbnail;
-                }
-                
-				// implicit Thumbnail when Scene has an image Skybox
-				if ((bool) Skybox.IsImage())
-				{
-					return Skybox;
-				}
-				
-                return null;
-			}
-        }
+        [JsonIgnore] public AssetData Thumbnail => _thumbnail ?? Skybox.Thumbnail;
         
         [JsonIgnore] public List<EventData> SortedTimedEvents
         {
@@ -103,7 +84,7 @@ namespace AccessVR.OrchestrateVR.SDK
             
             list.AddRange(Skybox?.GetDownloadableFiles() ?? new ());
             
-            list.Add(Thumbnail?.ThumbnailFileData);
+            list.Add(Thumbnail?.FileData);
             
             list.AddRange(TimedEvents
                 .Select(timedEvent => timedEvent.GetDownloadableFiles())

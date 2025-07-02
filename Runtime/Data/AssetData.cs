@@ -60,12 +60,13 @@ namespace AccessVR.OrchestrateVR.SDK
             }
         }
 
-        [JsonIgnore] public DownloadableFileData FileData
+        [JsonIgnore] 
+        public DownloadableFileData FileData
         {
             get
             {
                 AssetPath assetPath = AssetPath.Make(path);
-                if (IsVideo() && originalPath != null)
+                if (IsVideo() && !string.IsNullOrEmpty(originalPath))
                 {
                     assetPath = AssetPath.Make(originalPath);
                 }
@@ -83,56 +84,33 @@ namespace AccessVR.OrchestrateVR.SDK
                     fileData.WithParent(GetParentScene().GetParentLesson().FileData);   
                 }
                 
-                return fileData;;    
+                return fileData;    
             }
         }
 
         [JsonIgnore]
-        [CanBeNull]
-        public DownloadableFileData ThumbnailFileData
+        public AssetData Thumbnail => new ()
         {
-            get
-            {
-                if (HasThumbnail())
-                {
-                    AssetPath assetPath = AssetPath.Make(thumbnailPath);
-                    if (GetParentScene()?.GetParentLesson() != null)
-                    {
-                        return new DownloadableFileData(
-                            Orchestrate.GetCdnUrl(assetPath.ToString()),
-                            assetPath.Env,
-                            GetType(),
-                            assetPath.Guid, 
-                            assetPath.Name, 
-                            GetParentScene().GetParentLesson().FileData
-                        );    
-                    }
-                    
-                    return new DownloadableFileData(
-                        Orchestrate.GetCdnUrl(assetPath.ToString()),
-                        assetPath.Env,
-                        GetType(),
-                        assetPath.Guid,  
-                        assetPath.Name
-                    );    
-                }
-                return null;
-            }
-        }
+            path = thumbnailPath,
+            assetTypeId = 5
+        };
 
         public List<DownloadableFileData> GetDownloadableFiles()
         {
             List<DownloadableFileData> files = new();
+            
             files.Add(FileData);
+            
             if (HasThumbnail())
             {
-                files.Add(ThumbnailFileData);
+                files.Add(Thumbnail.FileData);
             }
 
             if (HasSubtitles())
             {
                 files.Add(SubtitlesFileData);
             }
+            
             return files;
         }
         
@@ -151,7 +129,7 @@ namespace AccessVR.OrchestrateVR.SDK
             {
                 if (_thumbnailTexture == null)
                 {
-                    _thumbnailTexture = await Orchestrate.LoadTexture2D(ThumbnailFileData);
+                    _thumbnailTexture = await Orchestrate.LoadTexture2D(Thumbnail.FileData);
                 }
             }
             return _thumbnailTexture;

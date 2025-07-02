@@ -518,7 +518,7 @@ namespace AccessVR.OrchestrateVR.SDK
 
 		public static bool CacheContains(AssetData asset)
 		{
-			return CacheContains(asset.FileData) && (asset.ThumbnailFileData == null || CacheContains(asset.ThumbnailFileData));
+			return CacheContains(asset.FileData) && (!asset.HasThumbnail() || CacheContains(asset.Thumbnail.FileData));
 		}
 		
 		public static bool CacheContains(FileData file)

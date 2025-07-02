@@ -42,7 +42,7 @@ namespace AccessVR.OrchestrateVR.SDK
 				};
 				try
 				{
-					summary.ThumbnailEncoded = Orchestrate.EncodeCachedBytes(Thumbnail?.ThumbnailFileData);
+					summary.ThumbnailEncoded = Orchestrate.EncodeCachedBytes(Thumbnail?.FileData);
 				}
 				catch (IOException e)
 				{
@@ -52,9 +52,13 @@ namespace AccessVR.OrchestrateVR.SDK
 			}
 		}
 
-		[JsonIgnore] [CanBeNull] public SceneData InitialScene => Scenes.First(scene => scene.Id == InitialSceneId);
+		[JsonIgnore] 
+		[CanBeNull] 
+		public SceneData InitialScene => Scenes.First(scene => scene.Id == InitialSceneId);
 
-		[JsonIgnore] [CanBeNull] public AssetData Thumbnail => InitialScene?.Thumbnail;
+		[JsonIgnore] 
+		[CanBeNull] 
+		private AssetData Thumbnail => InitialScene?.Thumbnail;
 		
 		public List<DownloadableFileData> GetDownloadableFiles()
 		{
