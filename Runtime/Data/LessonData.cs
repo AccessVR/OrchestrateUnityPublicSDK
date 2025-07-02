@@ -42,7 +42,17 @@ namespace AccessVR.OrchestrateVR.SDK
 				};
 				try
 				{
-					summary.ThumbnailEncoded = Orchestrate.EncodeCachedBytes(Thumbnail?.FileData);
+
+					if (Thumbnail != null)
+					{
+						string thumbnailPath = Orchestrate.GetCachePath(Thumbnail.FileData);
+						FileInfo info = new FileInfo(thumbnailPath);
+						Debug.Log($"Thumbnail {Thumbnail.FileData.Name} {info.Length} bytes ({thumbnailPath})");
+						if (info.Length <= 1048576)
+						{
+							summary.ThumbnailEncoded = Orchestrate.EncodeCachedBytes(Thumbnail.FileData);	
+						}
+					}
 				}
 				catch (IOException e)
 				{

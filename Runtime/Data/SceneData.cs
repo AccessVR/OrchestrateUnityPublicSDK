@@ -39,7 +39,7 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonIgnore] private LessonData _parentLesson;
         [JsonIgnore] public ScreenType ScreenType;
 
-        [JsonIgnore] public AssetData Thumbnail => _thumbnail ?? Skybox.Thumbnail;
+        [JsonIgnore] public AssetData Thumbnail => _thumbnail?.Thumbnail ?? Skybox.Thumbnail;
         
         [JsonIgnore] public List<EventData> SortedTimedEvents
         {
