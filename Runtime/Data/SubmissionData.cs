@@ -8,7 +8,7 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("lessonId")] public int LessonId;
         [JsonProperty("startedOn")] public DateTime StartedOn;
         [JsonProperty("learnerId")] public int LearnerId;
-        [JsonProperty("assignmentId")] public int AssignmentId;
+        [JsonProperty("assignmentId")] public int? AssignmentId;
         [JsonProperty("score")] public float Score;
         
         [JsonProperty("id")] public string Id;
