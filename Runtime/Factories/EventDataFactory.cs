@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.Serialization;
 using JetBrains.Annotations;
 using Newtonsoft.Json.Linq;
 
@@ -42,6 +43,9 @@ namespace AccessVR.OrchestrateVR.SDK
 
 	        eventData?.SetIsActionEvent(isActionEvent);
 	        eventData?.SetParentScene(parent);
+
+	        // Call AfterDeserialized to ensure custom post-processing is performed
+	        eventData?.AfterDeserialized(new StreamingContext());
 
 	        return eventData;
         }

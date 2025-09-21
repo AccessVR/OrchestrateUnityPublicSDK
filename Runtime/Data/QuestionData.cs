@@ -17,8 +17,11 @@ namespace AccessVR.OrchestrateVR.SDK
 
         [JsonProperty("id")] public string Id;
         [JsonProperty("text")] public string Text;
+        [JsonProperty("buttonText")] public string ButtonText = "Submit";
         [JsonProperty("assessable")] public bool Assessable = true;
         [JsonProperty("remediate")] public bool Remediate = true;
+        [JsonProperty("requireCorrectAnswer")] public bool RequireCorrectAnswer = false;
+        [JsonProperty("allowChangeAnswer")] public bool AllowChangeAnswer = true;
         [JsonProperty("answers")] public List<AnswerData> Answers;
         [JsonProperty("questionType")] private int _questionType;
 

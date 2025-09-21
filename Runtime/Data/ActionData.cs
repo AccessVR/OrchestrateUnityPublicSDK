@@ -18,14 +18,18 @@ namespace AccessVR.OrchestrateVR.SDK
 	
 	public class ActionData: Data, IDownloadable
 	{
-		[JsonProperty("id")] private string Id;
+		[JsonProperty("id")] private string _Id;
+
+		[JsonIgnore]
+		public string Id => _Id ??= System.Guid.NewGuid().ToString();
+
 		[JsonProperty("sceneId")] private int? _sceneId;
 		[JsonProperty("timeStamp")] public float Timestamp;
 		[JsonProperty("event")] public JObject _eventData;
 		[JsonProperty("type")] private int _type;
-		
+
 		public int SceneId => _sceneId ?? -1;
-		
+
 		[JsonIgnore] public ActionType Type = ActionType.None;
 		[JsonIgnore] public EventData EventData;
 
