@@ -28,6 +28,7 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("duration")] public float Duration = 0.0f;
         
         [JsonProperty("showInSceneList")] public bool ShowInSceneList = true;
+        [JsonProperty("muteAudio")] public bool MuteAudio;
         [JsonProperty("thumbnailAsset")] public AssetData _thumbnail;
         [JsonProperty("endAction")] public ActionData EndAction = ActionData.NoAction;
         [JsonProperty("initialView")] public InitialViewData InitialView;
