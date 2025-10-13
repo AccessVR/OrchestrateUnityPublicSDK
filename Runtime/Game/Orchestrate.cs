@@ -8,6 +8,7 @@ using Cysharp.Threading.Tasks;
 using System.Net.Http;
 using Newtonsoft.Json;
 using UnityEngine.Networking;
+using Vuplex.WebView;
 
 namespace AccessVR.OrchestrateVR.SDK
 {
@@ -45,6 +46,8 @@ namespace AccessVR.OrchestrateVR.SDK
 
         private string _userCode;
 
+        private SessionData _sessionData;
+
         private List<LessonSummaryData> _cachedLessonSummaries;
         
 	    [CanBeNull]
@@ -67,18 +70,35 @@ namespace AccessVR.OrchestrateVR.SDK
 
         public static void SetAuthToken(string token)
         {
-	        PlayerPrefs.SetString(GetEnvironmentPrefKey("apiKey"), token);
-	        PlayerPrefs.Save();
+            Instance.LoadSessionData();
+            Instance._sessionData.AuthToken = token;
             Instance._authToken = token;
+            Instance.SaveSessionData();
         }
 
         public static string GetAuthToken()
         {
-	        if (!String.IsNullOrEmpty(Instance._authToken))
-	        {
-		        return Instance._authToken;
-	        }
-	        return PlayerPrefs.GetString(GetEnvironmentPrefKey("apiKey")) ?? PlayerPrefs.GetString("apiKey");
+            if (!String.IsNullOrEmpty(Instance._authToken))
+            {
+                return Instance._authToken;
+            }
+
+            Instance.LoadSessionData();
+            if (!String.IsNullOrEmpty(Instance._sessionData.AuthToken))
+            {
+                Instance._authToken = Instance._sessionData.AuthToken;
+                return Instance._authToken;
+            }
+
+            // Fallback to PlayerPrefs for backwards compatibility
+            string legacyToken = PlayerPrefs.GetString(GetEnvironmentPrefKey("apiKey")) ?? PlayerPrefs.GetString("apiKey");
+            if (!String.IsNullOrEmpty(legacyToken))
+            {
+                Instance._authToken = legacyToken;
+                Instance._sessionData.AuthToken = legacyToken;
+                Instance.SaveSessionData();
+            }
+            return legacyToken;
         }
 
         public static void SetBaseUrl(string url)
@@ -239,6 +259,23 @@ namespace AccessVR.OrchestrateVR.SDK
         {
             base.Awake();
             _lastIsOfflineValue = IsOffline;
+            LoadSessionData();
+        }
+
+        private void LoadSessionData()
+        {
+            if (_sessionData == null)
+            {
+                _sessionData = SessionManager.LoadOrMigrateSession(GetEnvironment().ToString());
+            }
+        }
+
+        private void SaveSessionData()
+        {
+            if (_sessionData != null)
+            {
+                SessionManager.SaveSession(GetEnvironment().ToString(), _sessionData);
+            }
         }
 
         private void Update()
@@ -311,18 +348,30 @@ namespace AccessVR.OrchestrateVR.SDK
 
         public static OfflineStates OfflineState
         {
-            get => getOfflineStateForString(PlayerPrefs.GetString("OfflineState"));
+            get
+            {
+                Instance.LoadSessionData();
+                if (!String.IsNullOrEmpty(Instance._sessionData.OfflineState))
+                {
+                    return getOfflineStateForString(Instance._sessionData.OfflineState);
+                }
+                // Fallback to PlayerPrefs for backwards compatibility
+                return getOfflineStateForString(PlayerPrefs.GetString("OfflineState"));
+            }
             set
             {
-	            bool lastOfflineValue = IsOffline;
+                bool lastOfflineValue = IsOffline;
+                Instance.LoadSessionData();
+
                 if (value == OfflineStates.Online)
                 {
-                    PlayerPrefs.SetString("OfflineState", "online");
-                    PlayerPrefs.Save();
-                } else if (value == OfflineStates.Offline)
+                    Instance._sessionData.OfflineState = "online";
+                    Instance.SaveSessionData();
+                }
+                else if (value == OfflineStates.Offline)
                 {
-                    PlayerPrefs.SetString("OfflineState", "offline");
-                    PlayerPrefs.Save();
+                    Instance._sessionData.OfflineState = "offline";
+                    Instance.SaveSessionData();
                 }
                 else
                 {
@@ -359,7 +408,19 @@ namespace AccessVR.OrchestrateVR.SDK
 
         public bool HasUser()
         {
-	        return _user != null || PlayerPrefs.HasKey(GetEnvironmentPrefKey("apiKey")) || PlayerPrefs.HasKey("apiKey");
+            if (_user != null)
+            {
+                return true;
+            }
+
+            LoadSessionData();
+            if (!String.IsNullOrEmpty(_sessionData.AuthToken))
+            {
+                return true;
+            }
+
+            // Fallback to PlayerPrefs for backwards compatibility
+            return PlayerPrefs.HasKey(GetEnvironmentPrefKey("apiKey")) || PlayerPrefs.HasKey("apiKey");
         }
 
         public static string GetEnvironmentPrefKey(string key)
@@ -369,85 +430,113 @@ namespace AccessVR.OrchestrateVR.SDK
 
         public static async UniTask<UserData> LoadUser([CanBeNull] Action<UserData> onUserDataLoaded = null)
         {
-	        if (String.IsNullOrEmpty(GetAuthToken()))
-	        {
-		        if (!IsOffline)
-		        {
-			        FireError(Error.NotAuthenticated);
-		        }
-		        else
-		        {
-			        FireError(Error.InternetRequired);
-		        }
+            if (String.IsNullOrEmpty(GetAuthToken()))
+            {
+                if (!IsOffline)
+                {
+                    FireError(Error.NotAuthenticated);
+                }
+                else
+                {
+                    FireError(Error.InternetRequired);
+                }
 
-		        return null;
-	        }
+                return null;
+            }
 
-	        if (PlayerPrefs.HasKey(GetEnvironmentPrefKey("user")))
-	        {
-				SetUser(JsonConvert.DeserializeObject<UserData>(PlayerPrefs.GetString(GetEnvironmentPrefKey("user"))));;
-				
-			// Legacy support for userid storage	
-	        } else if (PlayerPrefs.HasKey("userid"))
-			{
-				UserData user = new UserData();
-				user.UserId = int.Parse(PlayerPrefs.GetString("userid"));
-				user.DisplayName = PlayerPrefs.GetString("displayname");
-				user.UserName = PlayerPrefs.GetString("username");
-				user.Roles = PlayerPrefs.GetString("userroles").Split(',').ToList();
-				user.Permissions = PlayerPrefs.GetString("userpermissions").Split(',').ToList();
+            Instance.LoadSessionData();
 
-				SetUser(user);
-			}
-	        
-			else
-			{
-				try
-				{
-					UserData user = await CreateClient().GetUser();
-					PlayerPrefs.SetString(GetEnvironmentPrefKey("user"), JsonConvert.SerializeObject(user));;
-					PlayerPrefs.Save();
-					
-					SetUser(user);
-				}
-				catch (HttpRequestException e)
-				{
-					FireError(new Error(e));
-					return null;
-				}
-			}
-			
-			if (!IsOffline)
-			{
-				if (!await Instance.IsLoggedIn())
-				{
-					FireError(Error.NotAuthenticated);
-					return null;
-				}
-			}
+            // Try loading from session file first
+            if (Instance._sessionData.User != null)
+            {
+                SetUser(Instance._sessionData.User);
+            }
+            // Fallback to PlayerPrefs for backwards compatibility
+            else if (PlayerPrefs.HasKey(GetEnvironmentPrefKey("user")))
+            {
+                SetUser(JsonConvert.DeserializeObject<UserData>(PlayerPrefs.GetString(GetEnvironmentPrefKey("user"))));
+            }
+            // Legacy support for userid storage
+            else if (PlayerPrefs.HasKey("userid"))
+            {
+                UserData user = new UserData();
+                user.UserId = int.Parse(PlayerPrefs.GetString("userid"));
+                user.DisplayName = PlayerPrefs.GetString("displayname");
+                user.UserName = PlayerPrefs.GetString("username");
+                user.Roles = PlayerPrefs.GetString("userroles").Split(',').ToList();
+                user.Permissions = PlayerPrefs.GetString("userpermissions").Split(',').ToList();
 
-			onUserDataLoaded?.Invoke(GetUser());
-			Instance.sessionListeners.ForEach((handler) => handler.OnUserData(GetUser()));
-			return GetUser();
-		}
+                SetUser(user);
+            }
+            // Fetch from API if not cached
+            else
+            {
+                try
+                {
+                    UserData user = await CreateClient().GetUser();
+                    SetUser(user);
+                    Instance._sessionData.User = user;
+                    Instance.SaveSessionData();
+                }
+                catch (HttpRequestException e)
+                {
+                    FireError(new Error(e));
+                    return null;
+                }
+            }
+
+            if (!IsOffline)
+            {
+                if (!await Instance.IsLoggedIn())
+                {
+                    FireError(Error.NotAuthenticated);
+                    return null;
+                }
+            }
+
+            onUserDataLoaded?.Invoke(GetUser());
+            Instance.sessionListeners.ForEach((handler) => handler.OnUserData(GetUser()));
+            return GetUser();
+        }
 		
 		public async UniTask<bool> IsLoggedIn()
 		{
 			return await CreateClient().IsLoggedIn();
 		}
 
+		public static async UniTask ClearWebCookies()
+		{
+			try
+			{
+				await Web.CookieManager.DeleteCookies(GetBaseUrl(), "orchestratevr_session");
+				Debug.Log($"ClearWebCookies / Deleted cookies for: {GetBaseUrl()}");
+			}
+			catch (Exception e)
+			{
+				Debug.LogError($"ClearWebCookies / Failed to delete cookies: {e.Message}");
+			}
+		}
+
 		public static void Logout()
 		{
 			SetAuthToken(null);
-			Debug.Log("Logout / SethAuthToken(null)");
+			Debug.Log("Logout / SetAuthToken(null)");
 			SetUser(null);
 			Debug.Log("Logout / SetUser(null)");
+			SessionManager.DeleteSession(GetEnvironment().ToString());
+			Debug.Log("Logout / SessionManager.DeleteSession()");
+			Instance._sessionData = new SessionData();
+			Debug.Log("Logout / Reset session data");
+			// Clear web cookies
+			ClearWebCookies().Forget();
+			Debug.Log("Logout / ClearWebCookies initiated");
+			// Still clear PlayerPrefs for backwards compatibility cleanup
 			PlayerPrefs.DeleteAll();
 			Debug.Log("Logout / PlayerPrefs.DeleteAll()");
 			PlayerPrefs.Save();
 			Debug.Log("Logout / PlayerPrefs.Save()");
 			Instance.sessionListeners.ForEach((handler) => handler.OnLogout());
-			Debug.Log("Logout / sessionListeners.OnLogOut()");
+			Debug.Log("Logout / sessionListeners.OnLogout()");
 		}
         
         public static Dictionary<string, string> GetSettings()
@@ -666,8 +755,9 @@ namespace AccessVR.OrchestrateVR.SDK
 		{
 			string path = await CreateClient().GetSkyboxPath();
 			string url = GetCdnUrl(path);
-			PlayerPrefs.SetString("defaultSkybox", url);
-			PlayerPrefs.Save();
+			LoadSessionData();
+			_sessionData.DefaultSkybox = url;
+			SaveSessionData();
 			sessionListeners.ForEach((listener) => listener.OnSkybox(url));
 		}
 		
@@ -676,21 +766,23 @@ namespace AccessVR.OrchestrateVR.SDK
 			try
 			{
 				Debug.Log("Requesting user code for Device: " + SystemInfo.deviceUniqueIdentifier);
-				_userCode = await CreateClient().GetUserCode(SystemInfo.deviceUniqueIdentifier);;
-				PlayerPrefs.SetString("userCode", _userCode);
-				PlayerPrefs.Save();
+				_userCode = await CreateClient().GetUserCode(SystemInfo.deviceUniqueIdentifier);
+				LoadSessionData();
+				_sessionData.UserCode = _userCode;
+				SaveSessionData();
 				sessionListeners.ForEach((handler) => handler.OnUserCode(_userCode));
-			} catch (HttpRequestException e)
-            {
-                if (IsOffline)
-                {
-	                FireError(Error.InternetRequired);
-                }
-	            else
-	            {
-					FireError(Error.FailedToLoadUserCode);    
-	            }
-            }
+			}
+			catch (HttpRequestException e)
+			{
+				if (IsOffline)
+				{
+					FireError(Error.InternetRequired);
+				}
+				else
+				{
+					FireError(Error.FailedToLoadUserCode);
+				}
+			}
 		}
 		
 		public static async UniTask<string> LoadAuthToken(string newUserCode = null)
