@@ -84,21 +84,8 @@ namespace AccessVR.OrchestrateVR.SDK
             }
 
             Instance.LoadSessionData();
-            if (!String.IsNullOrEmpty(Instance._sessionData.AuthToken))
-            {
-                Instance._authToken = Instance._sessionData.AuthToken;
-                return Instance._authToken;
-            }
-
-            // Fallback to PlayerPrefs for backwards compatibility
-            string legacyToken = PlayerPrefs.GetString(GetEnvironmentPrefKey("apiKey")) ?? PlayerPrefs.GetString("apiKey");
-            if (!String.IsNullOrEmpty(legacyToken))
-            {
-                Instance._authToken = legacyToken;
-                Instance._sessionData.AuthToken = legacyToken;
-                Instance.SaveSessionData();
-            }
-            return legacyToken;
+            Instance._authToken = Instance._sessionData.AuthToken;
+            return Instance._authToken;
         }
 
         public static void SetBaseUrl(string url)
@@ -351,12 +338,7 @@ namespace AccessVR.OrchestrateVR.SDK
             get
             {
                 Instance.LoadSessionData();
-                if (!String.IsNullOrEmpty(Instance._sessionData.OfflineState))
-                {
-                    return getOfflineStateForString(Instance._sessionData.OfflineState);
-                }
-                // Fallback to PlayerPrefs for backwards compatibility
-                return getOfflineStateForString(PlayerPrefs.GetString("OfflineState"));
+                return getOfflineStateForString(Instance._sessionData.OfflineState);
             }
             set
             {
@@ -414,13 +396,7 @@ namespace AccessVR.OrchestrateVR.SDK
             }
 
             LoadSessionData();
-            if (!String.IsNullOrEmpty(_sessionData.AuthToken))
-            {
-                return true;
-            }
-
-            // Fallback to PlayerPrefs for backwards compatibility
-            return PlayerPrefs.HasKey(GetEnvironmentPrefKey("apiKey")) || PlayerPrefs.HasKey("apiKey");
+            return !String.IsNullOrEmpty(_sessionData.AuthToken);
         }
 
         public static string GetEnvironmentPrefKey(string key)
@@ -446,27 +422,10 @@ namespace AccessVR.OrchestrateVR.SDK
 
             Instance.LoadSessionData();
 
-            // Try loading from session file first
+            // Load from session file if available
             if (Instance._sessionData.User != null)
             {
                 SetUser(Instance._sessionData.User);
-            }
-            // Fallback to PlayerPrefs for backwards compatibility
-            else if (PlayerPrefs.HasKey(GetEnvironmentPrefKey("user")))
-            {
-                SetUser(JsonConvert.DeserializeObject<UserData>(PlayerPrefs.GetString(GetEnvironmentPrefKey("user"))));
-            }
-            // Legacy support for userid storage
-            else if (PlayerPrefs.HasKey("userid"))
-            {
-                UserData user = new UserData();
-                user.UserId = int.Parse(PlayerPrefs.GetString("userid"));
-                user.DisplayName = PlayerPrefs.GetString("displayname");
-                user.UserName = PlayerPrefs.GetString("username");
-                user.Roles = PlayerPrefs.GetString("userroles").Split(',').ToList();
-                user.Permissions = PlayerPrefs.GetString("userpermissions").Split(',').ToList();
-
-                SetUser(user);
             }
             // Fetch from API if not cached
             else
@@ -504,19 +463,6 @@ namespace AccessVR.OrchestrateVR.SDK
 			return await CreateClient().IsLoggedIn();
 		}
 
-		public static async UniTask ClearWebCookies()
-		{
-			try
-			{
-				await Web.CookieManager.DeleteCookies(GetBaseUrl(), "orchestratevr_session");
-				Debug.Log($"ClearWebCookies / Deleted cookies for: {GetBaseUrl()}");
-			}
-			catch (Exception e)
-			{
-				Debug.LogError($"ClearWebCookies / Failed to delete cookies: {e.Message}");
-			}
-		}
-
 		public static void Logout()
 		{
 			SetAuthToken(null);
@@ -527,9 +473,6 @@ namespace AccessVR.OrchestrateVR.SDK
 			Debug.Log("Logout / SessionManager.DeleteSession()");
 			Instance._sessionData = new SessionData();
 			Debug.Log("Logout / Reset session data");
-			// Clear web cookies
-			ClearWebCookies().Forget();
-			Debug.Log("Logout / ClearWebCookies initiated");
 			// Still clear PlayerPrefs for backwards compatibility cleanup
 			PlayerPrefs.DeleteAll();
 			Debug.Log("Logout / PlayerPrefs.DeleteAll()");
