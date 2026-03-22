@@ -57,6 +57,7 @@ namespace AccessVR.OrchestrateVR.SDK
 				{
 					bool error = false;
 					UnityWebRequest request  = Orchestrate.MakeCacheRequest(file);
+					Debug.Log($"[HTTP] GET {file.Url}");
 					UnityWebRequestAsyncOperation operation = request.SendWebRequest();
 
 					while (!operation.isDone)

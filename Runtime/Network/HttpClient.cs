@@ -2,6 +2,8 @@ using UnityEngine;
 using System;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using Cookie = System.Net.Cookie;
 using BaseHttpClient = System.Net.Http.HttpClient;
 using System.Collections.Generic;
@@ -13,10 +15,21 @@ using Newtonsoft.Json.Linq;
 
 namespace AccessVR.OrchestrateVR.SDK
 {
+    internal class LoggingHandler : DelegatingHandler
+    {
+        public LoggingHandler(HttpMessageHandler innerHandler) : base(innerHandler) { }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Debug.Log($"[HTTP] {request.Method} {request.RequestUri}");
+            return await base.SendAsync(request, cancellationToken);
+        }
+    }
+
     public class HttpClient : BaseHttpClient
     {
 	    
-        private HttpClient(HttpClientHandler handler) : base(handler)
+        private HttpClient(HttpMessageHandler handler) : base(handler)
         {
 			//
         }
@@ -26,6 +39,7 @@ namespace AccessVR.OrchestrateVR.SDK
             CookieContainer cookies = new CookieContainer();
 			HttpClientHandler handler = new HttpClientHandler();
 			handler.CookieContainer = cookies;
+			handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
 
 			Uri uri = new Uri(baseUrl);
 
@@ -33,7 +47,8 @@ namespace AccessVR.OrchestrateVR.SDK
 			deviceCookie.Domain = uri.Host;
 			cookies.Add(deviceCookie);
 
-			var client = new HttpClient(handler);
+			var loggingHandler = new LoggingHandler(handler);
+			var client = new HttpClient(loggingHandler);
 
 			if (authToken != null) {
 				client.DefaultRequestHeaders.Add("Authorization", "Bearer " + authToken); 
@@ -143,7 +158,6 @@ namespace AccessVR.OrchestrateVR.SDK
 	        StringContent encodedPayload = new StringContent(payload, Encoding.UTF8, "application/json");
 	        Debug.Log(payload);
 	        string url = Url("/api/rest/lesson-submission/create");
-	        Debug.Log(url);
 	        HttpResponseMessage response = await PostAsync(url, encodedPayload);
 			string responseBody = await HttpUtils.AssertSuccessfulResponse(response);
 			return JsonConvert.DeserializeObject<SubmissionData>(responseBody);
