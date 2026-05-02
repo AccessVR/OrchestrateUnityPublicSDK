@@ -73,9 +73,12 @@ namespace AccessVR.OrchestrateVR.SDK
 						
 					if (request.result != UnityWebRequest.Result.Success)
 					{
-						OnDownloadError(job, file, new Error(
-							ErrorType.DownloadFailed,
-							$"HTTP {request.responseCode} {request.error} for {file.Url}"));
+						var basename = System.IO.Path.GetFileName(file.Url ?? "");
+						var msg = request.responseCode > 0
+							? $"HTTP {request.responseCode} downloading {basename}"
+							: $"{request.error} downloading {basename}";
+						Debug.LogError($"[Download] {msg} (url={file.Url})");
+						OnDownloadError(job, file, new Error(ErrorType.DownloadFailed, msg));
 						error = true;
 					}
 						
@@ -130,9 +133,7 @@ namespace AccessVR.OrchestrateVR.SDK
 			else
 			{
 				Debug.LogError($"Giving up on {file} after {MaxRetries} retries: {error.Message}");
-				job.FireFailure(new Error(
-					ErrorType.TooManyRetries,
-					$"Failed after {MaxRetries} retries: {error.Message}"));
+				job.FireFailure(new Error(ErrorType.TooManyRetries, error.Message));
 			}
 		}
 		
