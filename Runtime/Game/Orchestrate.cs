@@ -245,8 +245,27 @@ namespace AccessVR.OrchestrateVR.SDK
         public override void Awake()
         {
             base.Awake();
+            ApplyBuildEnvironmentOverride();
             _lastIsOfflineValue = IsOffline;
             LoadSessionData();
+        }
+
+        // Bridge build-time environment to runtime so a "Dev" / "Stage" / "Prod"
+        // labeled build actually hits the matching server, overriding the
+        // scene-baked [SerializeField] environment value. Editor playmode has no
+        // BUILD_* define and falls through to the inspector value.
+        private void ApplyBuildEnvironmentOverride()
+        {
+            #if BUILD_DEV
+            environment = Environment.Dev;
+            Debug.Log("[Orchestrate] BUILD_DEV: routing to Environment.Dev");
+            #elif BUILD_STAGE
+            environment = Environment.Stage;
+            Debug.Log("[Orchestrate] BUILD_STAGE: routing to Environment.Stage");
+            #elif BUILD_PROD
+            environment = Environment.Prod;
+            Debug.Log("[Orchestrate] BUILD_PROD: routing to Environment.Prod");
+            #endif
         }
 
         private void LoadSessionData()
