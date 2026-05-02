@@ -73,8 +73,9 @@ namespace AccessVR.OrchestrateVR.SDK
 						
 					if (request.result != UnityWebRequest.Result.Success)
 					{
-						// TODO: get more information about the failure
-						OnDownloadError(job, file, new Error($"Failed to download File {file.Url}"));
+						OnDownloadError(job, file, new Error(
+							ErrorType.DownloadFailed,
+							$"HTTP {request.responseCode} {request.error} for {file.Url}"));
 						error = true;
 					}
 						
@@ -123,12 +124,15 @@ namespace AccessVR.OrchestrateVR.SDK
 			if (file.Retries < MaxRetries)
 			{
 				file.Retries++;
-				Debug.LogError("Retrying " + file);
+				Debug.LogError($"Retrying ({file.Retries}/{MaxRetries}) {file}: {error.Message}");
 				StartCoroutine(StartNextDownload(job));
 			}
 			else
 			{
-				job.FireFailure(new Error(ErrorType.TooManyRetries));
+				Debug.LogError($"Giving up on {file} after {MaxRetries} retries: {error.Message}");
+				job.FireFailure(new Error(
+					ErrorType.TooManyRetries,
+					$"Failed after {MaxRetries} retries: {error.Message}"));
 			}
 		}
 		
