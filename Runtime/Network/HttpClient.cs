@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Networking;
 using System;
 using System.Net;
 using System.Net.Http;
@@ -40,6 +41,11 @@ namespace AccessVR.OrchestrateVR.SDK
 			HttpClientHandler handler = new HttpClientHandler();
 			handler.CookieContainer = cookies;
 			handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+			// API endpoints all return JSON directly; a redirect (e.g., 302 → /login)
+			// means the request was rejected (typically auth-related). Following
+			// the redirect would yield a 200 HTML page that misleads the caller into
+			// treating the request as successful.
+			handler.AllowAutoRedirect = false;
 
 			Uri uri = new Uri(baseUrl);
 
@@ -49,9 +55,10 @@ namespace AccessVR.OrchestrateVR.SDK
 
 			var loggingHandler = new LoggingHandler(handler);
 			var client = new HttpClient(loggingHandler);
+			client.Timeout = TimeSpan.FromSeconds(30);
 
 			if (authToken != null) {
-				client.DefaultRequestHeaders.Add("Authorization", "Bearer " + authToken); 
+				client.DefaultRequestHeaders.Add("Authorization", "Bearer " + authToken);
 			}
 			client.DefaultRequestHeaders.Add("Accept", "application/json");
 
@@ -63,17 +70,40 @@ namespace AccessVR.OrchestrateVR.SDK
 	        return Orchestrate.GetUrl(path);
         }
 
+        // Routed through UnityWebRequest (NSURLSession on iOS) with an explicit
+        // poll-and-deadline loop. System.Net.Http.HttpClient hangs indefinitely on
+        // iPadOS 26 when player-manifest returns a 302, even with an explicit
+        // Timeout and AllowAutoRedirect = false. UnityWebRequest's own `timeout`
+        // field also doesn't fire reliably here, so we enforce a deadline via
+        // Time.realtimeSinceStartup and abort the request ourselves.
         public async UniTask<bool> IsLoggedIn()
         {
-	        try
+	        var url = Url("/api/rest/player-manifest");
+	        Debug.Log($"[HTTP] GET {url}");
+	        using (var req = UnityWebRequest.Get(url))
 	        {
-		        HttpResponseMessage response = await GetAsync(Url("/api/rest/player-manifest"));
-		        return response.StatusCode == HttpStatusCode.OK;
-	        }
-	        catch (HttpRequestException e)
-	        {
-		        Debug.Log("Failed to download Player Manifest: " + e.Message);
-		        return false;
+		        req.redirectLimit = 0;
+		        req.SetRequestHeader("Accept", "application/json");
+		        var token = Orchestrate.GetAuthToken();
+		        if (!string.IsNullOrEmpty(token))
+		        {
+			        req.SetRequestHeader("Authorization", "Bearer " + token);
+		        }
+		        var op = req.SendWebRequest();
+		        var deadline = Time.realtimeSinceStartup + 15f;
+		        while (!op.isDone)
+		        {
+			        if (Time.realtimeSinceStartup > deadline)
+			        {
+				        Debug.Log("[HTTP] IsLoggedIn deadline exceeded; aborting");
+				        req.Abort();
+				        return false;
+			        }
+			        await UniTask.Yield();
+		        }
+		        var ok = req.result == UnityWebRequest.Result.Success && req.responseCode == 200;
+		        Debug.Log($"[HTTP] IsLoggedIn result={req.result} code={req.responseCode} ok={ok}");
+		        return ok;
 	        }
         }
 
