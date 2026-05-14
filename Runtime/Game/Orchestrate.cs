@@ -15,7 +15,6 @@ namespace AccessVR.OrchestrateVR.SDK
 	public enum Environment
 	{
 		Prod,
-		Stage,
 		Dev,
 		Local,
 		Custom,
@@ -147,8 +146,7 @@ namespace AccessVR.OrchestrateVR.SDK
 	        string baseUrl = Instance.environment switch
             {
                 Environment.Prod => "https://app.orchestratevr.com",
-                Environment.Stage => "https://orchestrate-stage.accessvr.com",
-                Environment.Dev => "https://orchestrate-dev.accessvr.com",
+                Environment.Dev => "https://orchestratexr-dev-tqftmg.laravel.cloud",
                 Environment.Local => "https://ovr.avr.ngrok.io",
                 _ => "http://localhost"
             };
@@ -250,7 +248,7 @@ namespace AccessVR.OrchestrateVR.SDK
             LoadSessionData();
         }
 
-        // Bridge build-time environment to runtime so a "Dev" / "Stage" / "Prod"
+        // Bridge build-time environment to runtime so a "Dev" / "Prod"
         // labeled build actually hits the matching server, overriding the
         // scene-baked [SerializeField] environment value. Editor playmode has no
         // BUILD_* define and falls through to the inspector value.
@@ -259,9 +257,6 @@ namespace AccessVR.OrchestrateVR.SDK
             #if BUILD_DEV
             environment = Environment.Dev;
             Debug.Log("[Orchestrate] BUILD_DEV: routing to Environment.Dev");
-            #elif BUILD_STAGE
-            environment = Environment.Stage;
-            Debug.Log("[Orchestrate] BUILD_STAGE: routing to Environment.Stage");
             #elif BUILD_PROD
             environment = Environment.Prod;
             Debug.Log("[Orchestrate] BUILD_PROD: routing to Environment.Prod");
