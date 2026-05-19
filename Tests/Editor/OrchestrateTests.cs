@@ -220,4 +220,65 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
             Assert.IsTrue(job.IsComplete);
         });
     }
-} 
+
+    /// <summary>
+    /// Pure unit tests for the Worldspace / Hidden-spatial-audio fields on
+    /// MediaEventData. Independent of test.config.json and the live server —
+    /// hand-built JSON snippets that mirror the shape the editor emits.
+    /// </summary>
+    public class MediaEventDataTests
+    {
+        [Test]
+        public void TestWorldspaceDeserialize()
+        {
+            string json = @"{
+                ""displayType"": 1,
+                ""position"": {""X"": 1.5, ""Y"": 0.25, ""Z"": -3.0},
+                ""rotation"": {""X"": 0.0, ""Y"": 90.0, ""Z"": 0.0},
+                ""spriteMode"": false
+            }";
+            MediaEventData data = JsonConvert.DeserializeObject<MediaEventData>(json);
+            Assert.AreEqual(DisplayTypeOptions.WorldSpace, data.DisplayType);
+            Assert.IsTrue(data.Position.HasValue);
+            AssertUtils.AreApproximatelyEqual(new Vector3(1.5f, 0.25f, -3.0f), data.Position.Value);
+            AssertUtils.AreApproximatelyEqual(new Vector3(0f, 90f, 0f), data.Rotation);
+            Assert.IsFalse(data.SpriteMode);
+        }
+
+        [Test]
+        public void TestPositionAbsentLeavesNull()
+        {
+            // Legacy or never-authored event: no `position` key in JSON.
+            // Position must remain null so the Unity renderer falls back to
+            // non-spatial audio (preserves legacy Hidden behavior).
+            string json = @"{""displayType"": 0}";
+            MediaEventData data = JsonConvert.DeserializeObject<MediaEventData>(json);
+            Assert.IsFalse(data.Position.HasValue);
+        }
+
+        [Test]
+        public void TestSpriteModeDefaultsTrue()
+        {
+            // Worldspace event missing spriteMode must default to true so
+            // first-render after switch-to-Worldspace billboards like a Hotspot.
+            string json = @"{""displayType"": 1}";
+            MediaEventData data = JsonConvert.DeserializeObject<MediaEventData>(json);
+            Assert.IsTrue(data.SpriteMode);
+        }
+
+        [Test]
+        public void TestHiddenWithPositionDeserialize()
+        {
+            // Quasi-worldspace Hidden: invisible at runtime, but the position
+            // anchors the spatial-audio source in the Unity client.
+            string json = @"{
+                ""displayType"": 2,
+                ""position"": {""X"": -2.0, ""Y"": 0.0, ""Z"": -3.0}
+            }";
+            MediaEventData data = JsonConvert.DeserializeObject<MediaEventData>(json);
+            Assert.AreEqual(DisplayTypeOptions.Hidden, data.DisplayType);
+            Assert.IsTrue(data.Position.HasValue);
+            AssertUtils.AreApproximatelyEqual(new Vector3(-2.0f, 0.0f, -3.0f), data.Position.Value);
+        }
+    }
+}
