@@ -280,5 +280,29 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
             Assert.IsTrue(data.Position.HasValue);
             AssertUtils.AreApproximatelyEqual(new Vector3(-2.0f, 0.0f, -3.0f), data.Position.Value);
         }
+
+        [Test]
+        public void TestScaleDeserialize()
+        {
+            // Worldspace event with a non-unit scale set by the editor's
+            // scale-mode gizmo.
+            string json = @"{
+                ""displayType"": 1,
+                ""scale"": {""X"": 1.5, ""Y"": 2.0, ""Z"": 0.75}
+            }";
+            MediaEventData data = JsonConvert.DeserializeObject<MediaEventData>(json);
+            Assert.IsTrue(data.Scale.HasValue);
+            AssertUtils.AreApproximatelyEqual(new Vector3(1.5f, 2.0f, 0.75f), data.Scale.Value);
+        }
+
+        [Test]
+        public void TestScaleAbsentLeavesNull()
+        {
+            // Layer the author never scaled. Renderer should treat null as
+            // unit scale rather than mistaking absence for a zero scale.
+            string json = @"{""displayType"": 1}";
+            MediaEventData data = JsonConvert.DeserializeObject<MediaEventData>(json);
+            Assert.IsFalse(data.Scale.HasValue);
+        }
     }
 }

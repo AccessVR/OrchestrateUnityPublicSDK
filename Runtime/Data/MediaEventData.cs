@@ -33,5 +33,16 @@ namespace AccessVR.OrchestrateVR.SDK
         /// behave like a Hotspot without the author having to choose an orientation.
         /// </summary>
         [JsonProperty("spriteMode")] public bool SpriteMode = true;
+
+        /// <summary>
+        /// Per-axis scale multiplier set by the editor's scale-mode gizmo.
+        /// Nullable: an absent value means "the author hasn't scaled this
+        /// layer" and the renderer should use unit scale. Treated as
+        /// {1,1,1} when null. Only honored when
+        /// <see cref="EventData.DisplayType"/> is <see cref="DisplayTypeOptions.WorldSpace"/>;
+        /// Hidden mode has no visible mesh to scale.
+        /// </summary>
+        [JsonProperty("scale", NullValueHandling = NullValueHandling.Ignore)]
+        public Vector3? Scale;
     }
 }
