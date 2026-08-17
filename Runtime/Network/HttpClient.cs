@@ -168,9 +168,9 @@ namespace AccessVR.OrchestrateVR.SDK
 				path += "/" + lookup.UniqueKey;
 			}
 			
-			if (lookup.Preview)
+			if (!String.IsNullOrEmpty(lookup.Preview))
 			{
-				path += "?preview=1";
+				path += "?preview=" + UnityWebRequest.EscapeURL(lookup.Preview);
 			}
 			
 			HttpResponseMessage response = await GetAsync(Url(path));
