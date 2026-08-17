@@ -254,7 +254,10 @@ namespace AccessVR.OrchestrateVR.SDK
         // BUILD_* define and falls through to the inspector value.
         private void ApplyBuildEnvironmentOverride()
         {
-            #if BUILD_DEV
+            #if BUILD_LOCAL
+            environment = Environment.Local;
+            Debug.Log("[Orchestrate] BUILD_LOCAL: routing to Environment.Local");
+            #elif BUILD_DEV
             environment = Environment.Dev;
             Debug.Log("[Orchestrate] BUILD_DEV: routing to Environment.Dev");
             #elif BUILD_PROD
