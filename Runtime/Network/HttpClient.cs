@@ -179,18 +179,86 @@ namespace AccessVR.OrchestrateVR.SDK
 			string guid = data["guid"]?.ToString();
 	        LessonData lessonData = data["content"].ToObject<LessonData>();
 			lessonData.Guid = guid;
+			// Version identity sits beside `content` on the Lesson resource,
+			// like guid; stamped here so it round-trips through the cache.
+			lessonData.PublishedLessonId = data["publishedLessonId"]?.Value<int?>();
+			lessonData.PublishedVersionNumber = data["publishedVersionNumber"]?.Value<int?>();
+			lessonData.IsPreview = !String.IsNullOrEmpty(lookup.Preview);
 			return lessonData;
         }
+
+        /// <summary>
+        /// Delays between submission attempts. The server is idempotent on
+        /// abxrRunId, which is what makes retrying safe; retry only on
+        /// no-response, 429, or 5xx — any other 4xx is a real rejection and
+        /// fails fast. A Retry-After header, when present, replaces the
+        /// scheduled delay.
+        /// </summary>
+        private static readonly TimeSpan[] SubmitRetryDelays =
+        {
+	        TimeSpan.FromSeconds(1),
+	        TimeSpan.FromSeconds(4),
+	        TimeSpan.FromSeconds(10),
+        };
 
         public async UniTask<SubmissionData> Submit(SubmissionData submission)
         {
 	        string payload = JsonConvert.SerializeObject(submission);
-	        StringContent encodedPayload = new StringContent(payload, Encoding.UTF8, "application/json");
 	        Debug.Log(payload);
 	        string url = Url("/api/rest/lesson-submission/create");
-	        HttpResponseMessage response = await PostAsync(url, encodedPayload);
-			string responseBody = await HttpUtils.AssertSuccessfulResponse(response);
-			return JsonConvert.DeserializeObject<SubmissionData>(responseBody);
+
+	        for (int attempt = 0; ; attempt++)
+	        {
+		        HttpResponseMessage response = null;
+		        try
+		        {
+			        // Content must be rebuilt per attempt: HttpContent cannot
+			        // be reused across sends.
+			        StringContent encodedPayload = new StringContent(payload, Encoding.UTF8, "application/json");
+			        response = await PostAsync(url, encodedPayload);
+		        }
+		        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
+		        {
+			        if (attempt >= SubmitRetryDelays.Length)
+			        {
+				        throw;
+			        }
+			        Debug.LogWarning($"[Submit] no response (attempt {attempt + 1}): {exception.Message}");
+			        await UniTask.Delay(SubmitRetryDelays[attempt]);
+			        continue;
+		        }
+
+		        if (ShouldRetrySubmit(response) && attempt < SubmitRetryDelays.Length)
+		        {
+			        TimeSpan delay = RetryAfterOrDefault(response, SubmitRetryDelays[attempt]);
+			        Debug.LogWarning($"[Submit] HTTP {(int) response.StatusCode} (attempt {attempt + 1}); retrying in {delay.TotalSeconds:0}s");
+			        await UniTask.Delay(delay);
+			        continue;
+		        }
+
+		        string responseBody = await HttpUtils.AssertSuccessfulResponse(response);
+		        return JsonConvert.DeserializeObject<SubmissionData>(responseBody);
+	        }
+        }
+
+        private static bool ShouldRetrySubmit(HttpResponseMessage response)
+        {
+	        return (int) response.StatusCode == 429 || (int) response.StatusCode >= 500;
+        }
+
+        private static TimeSpan RetryAfterOrDefault(HttpResponseMessage response, TimeSpan fallback)
+        {
+	        var retryAfter = response.Headers.RetryAfter;
+	        if (retryAfter?.Delta != null)
+	        {
+		        return retryAfter.Delta.Value;
+	        }
+	        if (retryAfter?.Date != null)
+	        {
+		        TimeSpan untilDate = retryAfter.Date.Value - DateTimeOffset.UtcNow;
+		        return untilDate > TimeSpan.Zero ? untilDate : fallback;
+	        }
+	        return fallback;
         }
 
     }

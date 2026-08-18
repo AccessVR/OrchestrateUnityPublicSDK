@@ -26,6 +26,27 @@ namespace AccessVR.OrchestrateVR.SDK
 		[JsonProperty("completeMessage")] public string CompleteMessage;
 		[JsonProperty("showSceneList")] public bool ShowSceneList = false;
 		[JsonProperty("isLocked")] public bool IsLocked = false;
+
+		/// <summary>
+		/// Version identity of the published content this payload represents.
+		/// Stamped by HttpClient.GetLesson from the Lesson resource (they sit
+		/// beside `content`, like guid) and round-tripped through the lesson
+		/// cache so an offline run still knows what it played. The row id goes
+		/// back on the submission (lessonVersionId, server-validated); the
+		/// human-meaningful number rides analytics context meta
+		/// (lessonVersionNumber) so a reader outside our database can tell
+		/// which content was on screen.
+		/// </summary>
+		[JsonProperty("publishedLessonId")] public int? PublishedLessonId;
+		[JsonProperty("publishedVersionNumber")] public int? PublishedVersionNumber;
+
+		/// <summary>
+		/// True when this payload was fetched through a preview launch code
+		/// (?preview=hash). Preview runs are not tracked — the native analogue
+		/// of the web viewer's edit/preview gating. Serialized so a cached
+		/// preview payload stays recognizable.
+		/// </summary>
+		[JsonProperty("isPreview")] public bool IsPreview = false;
 		[JsonProperty("scenes")] public List<SceneData> Scenes = new();
 		
 		[JsonIgnore]

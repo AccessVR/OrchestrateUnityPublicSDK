@@ -39,6 +39,12 @@ namespace AccessVR.OrchestrateVR.SDK
 		public int SceneId => _sceneId ?? -1;
 
 		[JsonIgnore] public ActionType Type = ActionType.None;
+
+		/// <summary>
+		/// The raw numeric action type as authored — what the web emitter puts
+		/// in hotspot.click meta (actionType).
+		/// </summary>
+		[JsonIgnore] public int RawType => _type;
 		[JsonIgnore] public EventData EventData;
 
 		public static ActionData NoAction => new ActionData();
