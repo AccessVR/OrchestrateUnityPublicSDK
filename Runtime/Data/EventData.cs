@@ -35,8 +35,16 @@ namespace AccessVR.OrchestrateVR.SDK
         HUD,
         WorldSpace,
         Hidden,
+        Hotspots,
     }
 
+    /// <remarks>
+    /// The editor also writes authoring-only keys onto event JSON that this
+    /// class deliberately does not map: <c>locked</c> (stage-edit freeze; the
+    /// layer plays normally) and <c>_worldspaceInitialized</c> (editor seed
+    /// sentinel). Json.NET ignores unknown members, so they ride through
+    /// harmlessly.
+    /// </remarks>
     [Serializable]
     public abstract class EventData : Data, IDownloadable
     {
@@ -64,9 +72,53 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("displayType")] private int? _displayType = null;
         [JsonProperty("positioning")] private int? _position = null;
         [JsonProperty("cardSize")] private int? _cardSize = null;
+
+        /// <summary>
+        /// Worldspace position relative to the camera, in Three.js right-handed
+        /// coordinates. Nullable: an absent value means "no position set".
+        /// The editor writes these transform fields on any worldspace-capable
+        /// event (Media, Text/Info, Question), which is why they live here on
+        /// the base class rather than on <see cref="MediaEventData"/>.
+        /// </summary>
+        [JsonProperty("position", NullValueHandling = NullValueHandling.Ignore)]
+        public Vector3? Position;
+
+        /// <summary>
+        /// Worldspace rotation in Euler degrees. Only honored when
+        /// <see cref="SpriteMode"/> is false and <see cref="DisplayType"/>
+        /// is <see cref="DisplayTypeOptions.WorldSpace"/>; otherwise the
+        /// renderer billboards the layer toward the camera.
+        /// </summary>
+        [JsonProperty("rotation")] public Vector3 Rotation;
+
+        /// <summary>
+        /// When true (default), a Worldspace layer always faces the camera
+        /// (billboard). When false, the layer holds the authored
+        /// <see cref="Rotation"/>. Default true is load-bearing: a fresh
+        /// switch-to-Worldspace behaves like a Hotspot without the author
+        /// having to choose an orientation.
+        /// </summary>
+        [JsonProperty("spriteMode")] public bool SpriteMode = true;
+
+        /// <summary>
+        /// Per-axis scale multiplier set by the editor's scale-mode gizmo.
+        /// Nullable: absent means "the author hasn't scaled this layer";
+        /// treated as {1,1,1} when null.
+        /// </summary>
+        [JsonProperty("scale", NullValueHandling = NullValueHandling.Ignore)]
+        public Vector3? Scale;
+
+        /// <summary>
+        /// "Glass Blur" behind HUD media cards (web default true). Deserialized
+        /// for contract completeness but NOT rendered: no backdrop-blur stack
+        /// exists in this project, and a stereo grab-pass on Quest is outside
+        /// the current render budget. HUD cards keep their opaque/tinted
+        /// background instead.
+        /// </summary>
+        [JsonProperty("backdropBlur")] public bool BackdropBlur = true;
         
         [JsonIgnore] public CardSizeOptions CardSize = CardSizeOptions.Medium;
-        [JsonIgnore] public Positioning Position = Positioning.BottomRight;
+        [JsonIgnore] public Positioning HudPositioning = Positioning.BottomRight;
         [JsonIgnore] public DisplayTypeOptions DisplayType = DisplayTypeOptions.HUD;
         [JsonIgnore] public Color? ButtonColor;
         [JsonIgnore] public Color? ButtonLabelColor;
@@ -94,7 +146,7 @@ namespace AccessVR.OrchestrateVR.SDK
         {
             if (_position.HasValue)
             {
-                Position = _position.Value switch
+                HudPositioning = _position.Value switch
                 {
                     0 => Positioning.TopLeft,
                     1 => Positioning.TopCenter,
@@ -125,6 +177,7 @@ namespace AccessVR.OrchestrateVR.SDK
                 {
                     1 => DisplayTypeOptions.WorldSpace,
                     2 => DisplayTypeOptions.Hidden,
+                    3 => DisplayTypeOptions.Hotspots,
                     _ => DisplayTypeOptions.HUD
                 };
             }
