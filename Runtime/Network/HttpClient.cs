@@ -16,6 +16,23 @@ using Newtonsoft.Json.Linq;
 
 namespace AccessVR.OrchestrateVR.SDK
 {
+    /// <summary>
+    /// A lesson submission the server refused with a non-retryable status
+    /// (4xx other than 429). Carries the status so the durable-queue flusher
+    /// can hold a possibly-stale-auth row (403) or drop a permanently
+    /// unacceptable one, instead of retrying every failure forever.
+    /// </summary>
+    public class SubmissionRejectedException : Exception
+    {
+        public int StatusCode { get; }
+
+        public SubmissionRejectedException(int statusCode, string body)
+            : base($"Submission rejected with HTTP {statusCode}: {body}")
+        {
+            StatusCode = statusCode;
+        }
+    }
+
     internal class LoggingHandler : DelegatingHandler
     {
         public LoggingHandler(HttpMessageHandler innerHandler) : base(innerHandler) { }
@@ -234,6 +251,17 @@ namespace AccessVR.OrchestrateVR.SDK
 			        Debug.LogWarning($"[Submit] HTTP {(int) response.StatusCode} (attempt {attempt + 1}); retrying in {delay.TotalSeconds:0}s");
 			        await UniTask.Delay(delay);
 			        continue;
+		        }
+
+		        if (!response.IsSuccessStatusCode && !ShouldRetrySubmit(response))
+		        {
+			        // The server refused this submission outright (auth,
+			        // missing lesson, bad payload) — waiting will not fix it.
+			        // A typed throw lets the durable-queue flusher decide
+			        // whether to hold or drop the row, instead of treating
+			        // every failure as transient.
+			        string body = await response.Content.ReadAsStringAsync();
+			        throw new SubmissionRejectedException((int) response.StatusCode, body);
 		        }
 
 		        string responseBody = await HttpUtils.AssertSuccessfulResponse(response);
