@@ -758,6 +758,30 @@ namespace AccessVR.OrchestrateVR.SDK
 				if (apiKey != null)
 				{
 					SetAuthToken(apiKey);
+
+					// A fresh token can belong to a different account than
+					// the one cached in the session file — re-pairing a
+					// shared headset is exactly that. The cached identity
+					// must not survive the new credentials: without this
+					// refresh the app greets and records runs as the OLD
+					// learner while every request authenticates as the NEW
+					// one, which the server rejects.
+					try
+					{
+						UserData user = await CreateClient().GetUser();
+						SetUser(user);
+						Instance._sessionData.User = user;
+						Instance.SaveSessionData();
+					}
+					catch (Exception userRefreshFailure)
+					{
+						// Clear the stale cache so LoadUser refetches
+						// instead of resurrecting the previous account.
+						SetUser(null);
+						Instance._sessionData.User = null;
+						Instance.SaveSessionData();
+						Debug.LogWarning($"Could not refresh the user after pairing; will refetch on next load: {userRefreshFailure.Message}");
+					}
 				}
 				return apiKey;
 			}
