@@ -36,6 +36,14 @@ namespace AccessVR.OrchestrateVR.SDK
         /// </summary>
         [JsonProperty("lessonVersionId")] public int? LessonVersionId;
 
+        /// <summary>
+        /// True when the learner exited before finishing. The server records
+        /// the session with CompletedOn null and an exited stamp, so the run
+        /// shows in reporting without advancing assignment completion or
+        /// consuming an attempt.
+        /// </summary>
+        [JsonProperty("exited")] public bool Exited;
+
         public static SubmissionData Make(LessonData lesson, UserData user, DateTime startedOn, float score)
         {
             return Make(lesson, 0, user, startedOn, score);

@@ -128,6 +128,20 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
             Assert.AreEqual("run-uuid", wire["abxrRunId"]?.ToString());
             Assert.AreEqual(88, wire["lessonVersionId"]?.Value<int>());
             Assert.AreEqual(JTokenType.Null, wire["sessionId"].Type);
+            Assert.IsFalse(wire["exited"].Value<bool>());
+        }
+
+        [Test]
+        public void TestExitedRunMarksSubmission()
+        {
+            var lesson = new LessonData { Id = 12 };
+            var user = new UserData { UserId = 42 };
+
+            var submission = SubmissionData.Make(lesson, 0, user, System.DateTime.UtcNow, 0.5f, "run-uuid");
+            submission.Exited = true;
+            var wire = JObject.Parse(JsonConvert.SerializeObject(submission));
+
+            Assert.IsTrue(wire["exited"].Value<bool>());
         }
 
         [Test]
