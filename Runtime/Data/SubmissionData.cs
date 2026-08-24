@@ -13,13 +13,43 @@ namespace AccessVR.OrchestrateVR.SDK
         
         [JsonProperty("id")] public string Id;
         [JsonProperty("completedOn")] public DateTime CompletedOn;
-        
+
+        /// <summary>
+        /// The run id this playthrough's ABXR telemetry was emitted under.
+        /// Ties the LearningSession to its analytics rows; the server is
+        /// idempotent on it, which is what makes submission retries safe.
+        /// Null when the run was untracked.
+        /// </summary>
+        [JsonProperty("abxrRunId", NullValueHandling = NullValueHandling.Ignore)]
+        public string AbxrRunId;
+
+        /// <summary>
+        /// Contact-capture session to complete instead of opening a new one.
+        /// Always null until the VR contact-capture flow ships.
+        /// </summary>
+        [JsonProperty("sessionId")] public int? SessionId;
+
+        /// <summary>
+        /// The version row id actually played (LessonData.PublishedLessonId).
+        /// Client-reported because the server cannot infer it after a
+        /// republish; validated server-side against the lesson.
+        /// </summary>
+        [JsonProperty("lessonVersionId")] public int? LessonVersionId;
+
+        /// <summary>
+        /// True when the learner exited before finishing. The server records
+        /// the session with CompletedOn null and an exited stamp, so the run
+        /// shows in reporting without advancing assignment completion or
+        /// consuming an attempt.
+        /// </summary>
+        [JsonProperty("exited")] public bool Exited;
+
         public static SubmissionData Make(LessonData lesson, UserData user, DateTime startedOn, float score)
         {
             return Make(lesson, 0, user, startedOn, score);
         }
-        
-        public static SubmissionData Make(LessonData lesson, int assignmentId, UserData user, DateTime startedOn, float score)
+
+        public static SubmissionData Make(LessonData lesson, int assignmentId, UserData user, DateTime startedOn, float score, string abxrRunId = null)
         {
             return new()
             {
@@ -28,6 +58,9 @@ namespace AccessVR.OrchestrateVR.SDK
                 LearnerId = user.UserId,
                 Score = score,
                 StartedOn = startedOn,
+                AbxrRunId = abxrRunId,
+                SessionId = null,
+                LessonVersionId = lesson.PublishedLessonId,
             };
         }
     }

@@ -12,7 +12,20 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("roles")] public List<string> Roles;
         [JsonProperty("permissions")] public List<string> Permissions;
         [JsonProperty("userCode")] public string UserCode;
-        
+
+        /// <summary>
+        /// The user's active organization, from the player manifest. Persists
+        /// through the cached session file, so an offline launch still knows
+        /// which tenant its analytics belong to.
+        /// </summary>
+        [JsonProperty("organizationId")] public int? OrganizationId;
+        [JsonProperty("organizationName")] public string OrganizationName;
+
+        /// <summary>
+        /// ABXR collector credentials, also session-cached for offline runs.
+        /// </summary>
+        [JsonProperty("abxr")] public AbxrConfigData Abxr;
+
         [JsonIgnore] public bool IsAnonymous;
     }
 

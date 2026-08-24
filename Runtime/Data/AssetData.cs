@@ -10,6 +10,7 @@ namespace AccessVR.OrchestrateVR.SDK
 {
     public class AssetData : Data, IDownloadable
     {
+        [JsonProperty("id")] public int? Id;
         [JsonProperty("assetTypeId")] public int assetTypeId;
         [JsonProperty("videoTypeId")] public int? videoTypeId;
         [JsonProperty("displayedName")] public string displayedName;

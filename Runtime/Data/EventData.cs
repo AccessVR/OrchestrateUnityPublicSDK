@@ -49,6 +49,17 @@ namespace AccessVR.OrchestrateVR.SDK
     public abstract class EventData : Data, IDownloadable
     {
         [JsonProperty("id")] public string Id;
+
+        /// <summary>
+        /// The raw numeric event type from the wire (1 PROMPT, 2 INFO/TEXT,
+        /// 3 QUESTION, 4 legacy VIDEO, 5 HOTSPOT, 6 MEDIA). The factory
+        /// dispatches on it before deserialization; it is mapped here as well
+        /// because analytics categorizes shown/dismissed events by it
+        /// (media.* when 6, prompt.* otherwise — byte-parity with the web
+        /// emitter's === MEDIA test).
+        /// </summary>
+        [JsonProperty("eventType")] public int EventType;
+
         [JsonProperty("startTime")] public double StartTime = 0.0;
         [JsonProperty("endTime")] public double EndTime = 0.0;
         [JsonProperty("pausePlayback")] private bool _pausePlayback = false;
