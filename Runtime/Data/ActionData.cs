@@ -28,6 +28,14 @@ namespace AccessVR.OrchestrateVR.SDK
 		[JsonProperty("event")] public JObject _eventData;
 		[JsonProperty("type")] private int _type;
 
+		/// <summary>
+		/// "Keep current view": on GoToScene / ReplayCurrentScene, preserve the
+		/// learner's current camera orientation instead of snapping to the target
+		/// scene's authored initial view (for scenes sharing a skybox, so the
+		/// transition doesn't feel like a teleport). Absent/false = legacy snap.
+		/// </summary>
+		[JsonProperty("preserveView")] public bool PreserveView = false;
+
 		public int SceneId => _sceneId ?? -1;
 
 		[JsonIgnore] public ActionType Type = ActionType.None;

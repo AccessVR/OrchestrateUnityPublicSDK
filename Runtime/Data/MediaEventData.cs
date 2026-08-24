@@ -1,48 +1,25 @@
 using System;
 using Newtonsoft.Json;
-using UnityEngine;
 
 namespace AccessVR.OrchestrateVR.SDK
 {
+    /// <summary>
+    /// Media (image / audio / video) timed event. The worldspace transform
+    /// fields (position / rotation / spriteMode / scale) live on
+    /// <see cref="EventData"/> — the editor writes them on any
+    /// worldspace-capable event type, not just Media.
+    /// </summary>
     [Serializable]
     public class MediaEventData : EventData
     {
         /// <summary>
-        /// Worldspace position relative to the camera, in Three.js right-handed
-        /// coordinates. Nullable: an absent value means "no position set" and
-        /// signals the renderer to fall back to non-spatial audio (preserves
-        /// legacy Hidden-Media behavior for events authored before this field
-        /// existed). Set by the editor when the author switches a Media event
-        /// to Worldspace or drops a placeable spatial-audio source on Hidden.
+        /// Hidden-media spatial-audio opt-in. Null = legacy payload (fall back
+        /// to the Position.HasValue proxy: a placed position implies spatial).
+        /// False = authoritatively non-spatial even if a stray position
+        /// exists — the editor deletes the position when the toggle is turned
+        /// off, but a defensive read costs nothing. True = spatial; the editor
+        /// seeds position {0,0,-3} when the toggle is turned on.
         /// </summary>
-        [JsonProperty("position", NullValueHandling = NullValueHandling.Ignore)]
-        public Vector3? Position;
-
-        /// <summary>
-        /// Worldspace rotation in Euler degrees. Only honored when
-        /// <see cref="SpriteMode"/> is false and <see cref="EventData.DisplayType"/>
-        /// is <see cref="DisplayTypeOptions.WorldSpace"/>; otherwise the renderer
-        /// billboards the layer toward the camera.
-        /// </summary>
-        [JsonProperty("rotation")] public Vector3 Rotation;
-
-        /// <summary>
-        /// When true (default), a Worldspace Media layer always faces the camera
-        /// (billboard). When false, the layer holds the authored <see cref="Rotation"/>.
-        /// Default true is load-bearing: it makes a fresh switch-to-Worldspace
-        /// behave like a Hotspot without the author having to choose an orientation.
-        /// </summary>
-        [JsonProperty("spriteMode")] public bool SpriteMode = true;
-
-        /// <summary>
-        /// Per-axis scale multiplier set by the editor's scale-mode gizmo.
-        /// Nullable: an absent value means "the author hasn't scaled this
-        /// layer" and the renderer should use unit scale. Treated as
-        /// {1,1,1} when null. Only honored when
-        /// <see cref="EventData.DisplayType"/> is <see cref="DisplayTypeOptions.WorldSpace"/>;
-        /// Hidden mode has no visible mesh to scale.
-        /// </summary>
-        [JsonProperty("scale", NullValueHandling = NullValueHandling.Ignore)]
-        public Vector3? Scale;
+        [JsonProperty("spatial")] public bool? Spatial;
     }
 }

@@ -111,7 +111,7 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
             Assert.AreEqual(4.0f, textEventData.StartTime);
             Assert.AreEqual(9.0f, textEventData.EndTime);
             Assert.AreEqual(CardSizeOptions.Small, textEventData.CardSize);
-            Assert.AreEqual(Positioning.MiddleCenter, textEventData.Position);
+            Assert.AreEqual(Positioning.MiddleCenter, textEventData.HudPositioning);
             Assert.AreEqual(DisplayTypeOptions.HUD, textEventData.DisplayType);;
             Assert.AreEqual("Continue", textEventData.ButtonText);
             

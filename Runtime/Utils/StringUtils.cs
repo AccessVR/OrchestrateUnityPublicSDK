@@ -46,6 +46,14 @@ namespace AccessVR.OrchestrateVR.SDK
 			return content;
 		}
 		
+		/// <summary>
+		/// Parses author-supplied CSS color strings: #RGB, #RGBA, #RRGGBB,
+		/// #RRGGBBAA, rgb(), rgba(). Returns null (never transparent black)
+		/// for anything unparseable, so callers can distinguish "no color"
+		/// from "black". Alpha is preserved — it is load-bearing (e.g. the
+		/// hidden-hotspot acknowledged disc derives its translucency from
+		/// the background color's alpha channel).
+		/// </summary>
 		public static Color? ConvertToColor(string color)
         {
 	        if (String.IsNullOrEmpty(color))
@@ -53,27 +61,60 @@ namespace AccessVR.OrchestrateVR.SDK
 		        return null;
 	        }
 
+	        color = color.Trim();
+
 	        if (color.StartsWith("#"))
             {
-                ColorUtility.TryParseHtmlString(color, out Color parsedColor);
-                return parsedColor;
+                // The failure path must return null, not default(Color):
+                // transparent black is a valid-looking color and silently
+                // wrong everywhere it is used.
+                return ColorUtility.TryParseHtmlString(color, out Color parsedColor)
+                    ? parsedColor
+                    : (Color?) null;
             }
             
             if (color.StartsWith("rgb"))
             {
-                string[] values = color.Replace("rgba(", "").Replace("rgb(", "").Replace(")", "").Split(',');
-                if (values.Length >= 3)
+                try
                 {
-                    float r = float.Parse(values[0]) / 255f;
-                    float g = float.Parse(values[1]) / 255f;
-                    float b = float.Parse(values[2]) / 255f;
-                    float a = values.Length > 3 ? float.Parse(values[3]) : 1f;
-                    return new Color(r, g, b, a);
+                    string[] values = color.Replace("rgba(", "").Replace("rgb(", "").Replace(")", "").Split(',');
+                    if (values.Length >= 3)
+                    {
+                        // InvariantCulture: float.Parse under a comma-decimal
+                        // locale would misread "0.5".
+                        float r = ParseComponent(values[0]) / 255f;
+                        float g = ParseComponent(values[1]) / 255f;
+                        float b = ParseComponent(values[2]) / 255f;
+                        // CSS alpha is 0-1; tolerate a 0-255 alpha defensively.
+                        float a = 1f;
+                        if (values.Length > 3)
+                        {
+                            a = ParseComponent(values[3]);
+                            if (a > 1f)
+                            {
+                                a /= 255f;
+                            }
+                        }
+                        return new Color(
+                            Mathf.Clamp01(r),
+                            Mathf.Clamp01(g),
+                            Mathf.Clamp01(b),
+                            Mathf.Clamp01(a));
+                    }
+                }
+                catch (FormatException)
+                {
+                    return null;
                 }
             }
             
             return null;
         }
+
+		private static float ParseComponent(string value)
+		{
+			return float.Parse(value.Trim(), System.Globalization.CultureInfo.InvariantCulture);
+		}
 
 	}
 

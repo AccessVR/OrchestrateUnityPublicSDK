@@ -20,14 +20,23 @@ namespace AccessVR.OrchestrateVR.SDK
         [FormerlySerializedAs("acknowledged")] [JsonProperty("acknowledged")] public bool Acknowledged = false;
         [FormerlySerializedAs("confirm")] [JsonProperty("confirm")] public bool Confirm = true;
         [JsonProperty("backgroundColor")] public string _backgroundColor;
+        [JsonProperty("iconColor")] private string _iconColor;
         public bool AlwaysShowLabel = false;
-        
+
+        /// <summary>
+        /// Stamped by the parent <see cref="HotspotEventData"/> after
+        /// deserialization, mirroring the AlwaysShowLabel pattern.
+        /// </summary>
+        [JsonIgnore] public HotspotVisibilityOptions Visibility = HotspotVisibilityOptions.Visible;
+
         [JsonIgnore] public Color? BackgroundColor;
+        [JsonIgnore] public Color? IconColor;
 
         [OnDeserialized]
         public void OnDeserialized(StreamingContext context)
         {
             BackgroundColor = StringUtils.ConvertToColor(_backgroundColor);
+            IconColor = StringUtils.ConvertToColor(_iconColor);
         }
 
         public List<DownloadableFileData> GetDownloadableFiles()

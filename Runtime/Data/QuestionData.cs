@@ -25,7 +25,20 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("answers")] public List<AnswerData> Answers;
         [JsonProperty("questionType")] private int _questionType;
 
+        /// <summary>
+        /// Hotspot-mode (displayType Hotspots) per-question visibility:
+        /// "visible" | "hidden". Absent means visible.
+        /// </summary>
+        [JsonProperty("hotspotVisibility")] private string _hotspotVisibility;
+
+        /// <summary>
+        /// Hotspot-mode label rule. Web contract: showLabels !== false means
+        /// show, so absent defaults to true.
+        /// </summary>
+        [JsonProperty("showLabels")] public bool ShowLabels = true;
+
         [JsonIgnore] public QuestionTypeOptions QuestionType;
+        [JsonIgnore] public HotspotVisibilityOptions HotspotVisibility = HotspotVisibilityOptions.Visible;
         
         public QuestionData()
         {
@@ -57,6 +70,10 @@ namespace AccessVR.OrchestrateVR.SDK
                 1 => QuestionTypeOptions.Multiple,
                 _ => QuestionTypeOptions.Single
             };
+
+            HotspotVisibility = _hotspotVisibility == "hidden"
+                ? HotspotVisibilityOptions.Hidden
+                : HotspotVisibilityOptions.Visible;
 
             if (Answers.Count <= 0)
             {
