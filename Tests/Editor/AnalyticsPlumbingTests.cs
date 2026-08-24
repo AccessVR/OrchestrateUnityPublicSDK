@@ -147,6 +147,23 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
         }
 
         [Test]
+        public void TestUnlistedLessonKeyRidesTheSubmission()
+        {
+            // The server authorizes play on unlisted content by the share
+            // key; a submission without it is refused (403) and the run's
+            // session never records.
+            var user = new UserData { UserId = 42 };
+
+            var keyed = SubmissionData.Make(new LessonData { Id = 12, UniqueKey = "share-key" }, 0, user,
+                System.DateTime.UtcNow, 0.5f);
+            var wire = JObject.Parse(JsonConvert.SerializeObject(keyed));
+            Assert.AreEqual("share-key", wire["uniqueKey"]?.ToString());
+
+            var unkeyed = SubmissionData.Make(new LessonData { Id = 12 }, 0, user, System.DateTime.UtcNow, 0.5f);
+            Assert.IsNull(JObject.Parse(JsonConvert.SerializeObject(unkeyed))["uniqueKey"]);
+        }
+
+        [Test]
         public void TestExitedRunMarksSubmission()
         {
             var lesson = new LessonData { Id = 12 };

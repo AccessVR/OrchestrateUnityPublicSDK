@@ -201,6 +201,10 @@ namespace AccessVR.OrchestrateVR.SDK
 			lessonData.PublishedLessonId = data["publishedLessonId"]?.Value<int?>();
 			lessonData.PublishedVersionNumber = data["publishedVersionNumber"]?.Value<int?>();
 			lessonData.IsPreview = !String.IsNullOrEmpty(lookup.Preview);
+			// The share key comes from the launch context, not the payload.
+			// Stamped so it round-trips through the lesson cache and rides
+			// the submission — unlisted content authorizes play by this key.
+			lessonData.UniqueKey = lookup.UniqueKey;
 			return lessonData;
         }
 

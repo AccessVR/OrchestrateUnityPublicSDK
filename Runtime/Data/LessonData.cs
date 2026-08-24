@@ -17,6 +17,15 @@ namespace AccessVR.OrchestrateVR.SDK
 		[JsonProperty("description")] public string Description;
 		[JsonProperty("createdBy")] public string CreatedBy;
 		[JsonProperty("guid")] public string Guid;
+
+		/// <summary>
+		/// The share key an unlisted Experience was opened with, from the
+		/// launch context (never the server payload). The submission carries
+		/// it because the server authorizes play on unlisted content by this
+		/// key — without it, every unlisted run's session was refused.
+		/// </summary>
+		[JsonProperty("uniqueKey", NullValueHandling = NullValueHandling.Ignore)]
+		public string UniqueKey;
 		[JsonProperty("initialScene")] public int InitialSceneId;
 		[JsonProperty("existsInManifest")] public bool ExistsInManifest = true;
 		// Nullable, all three: a draft previewed before its first publish has

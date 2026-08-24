@@ -37,6 +37,15 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("lessonVersionId")] public int? LessonVersionId;
 
         /// <summary>
+        /// The share key an unlisted Experience was opened with. The server
+        /// authorizes play on unlisted content by this key — the web player
+        /// sends it with every submission, and without it the server refuses
+        /// the session (403) for any unlisted run. Omitted when absent.
+        /// </summary>
+        [JsonProperty("uniqueKey", NullValueHandling = NullValueHandling.Ignore)]
+        public string UniqueKey;
+
+        /// <summary>
         /// True when the learner exited before finishing. The server records
         /// the session with CompletedOn null and an exited stamp, so the run
         /// shows in reporting without advancing assignment completion or
@@ -61,6 +70,7 @@ namespace AccessVR.OrchestrateVR.SDK
                 AbxrRunId = abxrRunId,
                 SessionId = null,
                 LessonVersionId = lesson.PublishedLessonId,
+                UniqueKey = lesson.UniqueKey,
             };
         }
     }
