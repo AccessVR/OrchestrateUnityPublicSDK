@@ -19,9 +19,13 @@ namespace AccessVR.OrchestrateVR.SDK
 		[JsonProperty("guid")] public string Guid;
 		[JsonProperty("initialScene")] public int InitialSceneId;
 		[JsonProperty("existsInManifest")] public bool ExistsInManifest = true;
-		[JsonProperty("startDate")] public DateTime StartDate;
-		[JsonProperty("completeDate")] public DateTime CompleteDate;
-		[JsonProperty("publishedDate")] public DateTime PublishedDate;
+		// Nullable, all three: a draft previewed before its first publish has
+		// no publishedDate (and may have no schedule window), and Json.NET
+		// throws converting null into a bare DateTime — which killed the
+		// whole lesson load for preview launch codes.
+		[JsonProperty("startDate")] public DateTime? StartDate;
+		[JsonProperty("completeDate")] public DateTime? CompleteDate;
+		[JsonProperty("publishedDate")] public DateTime? PublishedDate;
 		[JsonProperty("unity_completeMessage")] private UnityRichText _unityCompleteMessage;
 		[JsonProperty("completeMessage")] public string CompleteMessage;
 		[JsonProperty("showSceneList")] public bool ShowSceneList = false;

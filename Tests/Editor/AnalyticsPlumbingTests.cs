@@ -111,6 +111,21 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
             Assert.IsFalse(restored.PublishedVersionNumber.HasValue);
             Assert.IsFalse(restored.IsPreview);
         }
+
+        [Test]
+        public void TestDraftPreviewWithNullDatesDeserializes()
+        {
+            // A draft previewed before its first publish sends explicit nulls
+            // for its dates; this exact payload shape used to throw and kill
+            // the whole lesson load for preview launch codes.
+            var restored = JsonConvert.DeserializeObject<LessonData>(
+                @"{""id"": 483, ""guid"": ""abc"", ""publishedDate"": null, ""startDate"": null, ""completeDate"": null}");
+
+            Assert.AreEqual(483, restored.Id);
+            Assert.IsFalse(restored.PublishedDate.HasValue);
+            Assert.IsFalse(restored.StartDate.HasValue);
+            Assert.IsFalse(restored.CompleteDate.HasValue);
+        }
     }
 
     public class SubmissionDataAnalyticsTests
