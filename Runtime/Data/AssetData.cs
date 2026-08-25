@@ -33,6 +33,26 @@ namespace AccessVR.OrchestrateVR.SDK
         public bool IsVideo() => assetTypeId == 6;
         public bool IsAudioOrVideo() => IsAudio() || IsVideo();
         public bool HasSubtitles() => SrtSubtitles != null && !string.IsNullOrEmpty(SrtSubtitles.Content);
+
+        [JsonIgnore] public VideoType VideoType =>
+            videoTypeId is > 0 and <= 7 ? (VideoType) videoTypeId : VideoType.Unknown;
+        public bool HasVideoType() => VideoType != VideoType.Unknown;
+        public bool Is180Video() =>
+            IsVideo() && VideoType is VideoType.Video180 or VideoType.Video180Stereo;
+        public bool IsStereoVideo() => StereoLayout != StereoLayout.None;
+
+        // Packing conventions shared with the web player: VR180 stereo is
+        // side-by-side, 360 stereo is top-bottom; the left eye is the mono eye.
+        [JsonIgnore] public StereoLayout StereoLayout => !IsVideo()
+            ? StereoLayout.None
+            : VideoType switch
+            {
+                VideoType.Video180Stereo => StereoLayout.SideBySide,
+                VideoType.Video360Stereo => StereoLayout.TopBottom,
+                VideoType.VideoStereoSbs => StereoLayout.SideBySide,
+                VideoType.VideoStereoTab => StereoLayout.TopBottom,
+                _ => StereoLayout.None
+            };
         public TranscriptData SrtSubtitles => Subtitles?.FirstOrDefault(transcript => transcript.Format == TranscriptFormat.SRT);
         
         [JsonIgnore]
