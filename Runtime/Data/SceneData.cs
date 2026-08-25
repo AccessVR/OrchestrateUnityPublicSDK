@@ -32,6 +32,7 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("thumbnailAsset")] public AssetData _thumbnail;
         [JsonProperty("endAction")] public ActionData EndAction = ActionData.NoAction;
         [JsonProperty("initialView")] public InitialViewData InitialView;
+        [JsonProperty("mask")] public MaskData Mask;
         
         [JsonProperty("timedEvents")] private List<JObject> _timedEvents;
         [JsonProperty("screenType")] private int _screenType;
