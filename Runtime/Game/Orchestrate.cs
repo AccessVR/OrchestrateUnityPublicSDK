@@ -130,7 +130,7 @@ namespace AccessVR.OrchestrateVR.SDK
         public static bool IsTouchscreenPlayer() 
         {
 	        bool assumeIPhonePlayer = false;
-	        #if UNITY_IOS
+	        #if UNITY_IOS || DEVICE_CAVE
 				assumeIPhonePlayer = true;
 			#endif
 	        return assumeIPhonePlayer || Application.platform == RuntimePlatform.IPhonePlayer;
