@@ -124,7 +124,13 @@ namespace AccessVR.OrchestrateVR.SDK
 
         public static bool HasNativeKeyboard()
         {
+	        #if DEVICE_CAVE
+	        // Desktop cave: the hardware keyboard types into the webview directly,
+	        // so the XRI spatial keyboard must not deploy.
+	        return true;
+	        #else
 	        return Application.platform == RuntimePlatform.IPhonePlayer;
+	        #endif
         }
         
         public static bool IsTouchscreenPlayer() 
