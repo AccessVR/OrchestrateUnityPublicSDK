@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
+using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -41,6 +42,21 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonIgnore] public ScreenType ScreenType;
 
         [JsonIgnore] public AssetData Thumbnail => _thumbnail?.Thumbnail ?? Skybox.Thumbnail;
+
+        /// <summary>
+        /// The asset that owns this scene's thumbnail — and therefore caches its
+        /// decoded texture. <see cref="Thumbnail"/> mints a throwaway AssetData on
+        /// every read, so anything loading through it decodes the image again every
+        /// time and leaves the previous texture behind.
+        /// </summary>
+        [JsonIgnore] public AssetData ThumbnailAsset => _thumbnail ?? Skybox;
+
+        /// <summary>
+        /// The scene's thumbnail, decoded once and kept on the owning asset, which
+        /// outlives any one panel. Null when the scene has no thumbnail.
+        /// </summary>
+        public UniTask<Texture2D> LoadThumbnailTexture() =>
+            ThumbnailAsset?.LoadThumbnailTexture() ?? UniTask.FromResult<Texture2D>(null);
         
         [JsonIgnore] public List<EventData> SortedTimedEvents
         {
