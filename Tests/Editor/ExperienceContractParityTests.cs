@@ -364,4 +364,55 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
             }
         }
     }
+
+    /// <summary>
+    /// Author-controlled rewind and fast-forward: an Experience-level switch with a
+    /// per-Scene one inside it. Neither is present on anything published before the
+    /// setting existed, and absent has to read as allowed — those learners already
+    /// had the controls.
+    /// </summary>
+    public class TimelineSkippingContractTests
+    {
+        private static LessonData Lesson(string json) => JsonConvert.DeserializeObject<LessonData>(json);
+
+        private static SceneData Scene(string json) => JsonConvert.DeserializeObject<SceneData>(json);
+
+        [Test]
+        public void TestExperienceWithoutTheSettingAllowsSkipping()
+        {
+            Assert.IsTrue(Lesson(@"{""id"": 12}").AllowsSkipping());
+        }
+
+        [Test]
+        public void TestExperienceCanLockTheTimeline()
+        {
+            Assert.IsFalse(Lesson(@"{""id"": 12, ""allowSkipping"": false}").AllowsSkipping());
+        }
+
+        [Test]
+        public void TestExperienceCanLeaveTheTimelineOpen()
+        {
+            Assert.IsTrue(Lesson(@"{""id"": 12, ""allowSkipping"": true}").AllowsSkipping());
+        }
+
+        [Test]
+        public void TestSceneWithoutTheSettingAllowsSkipping()
+        {
+            Assert.IsTrue(Scene(@"{""id"": 1, ""timedEvents"": []}").AllowsSkipping());
+        }
+
+        [Test]
+        public void TestSceneCanLockItself()
+        {
+            Assert.IsFalse(Scene(@"{""id"": 1, ""timedEvents"": [], ""allowSkipping"": false}").AllowsSkipping());
+        }
+
+        [Test]
+        public void TestExplicitNullReadsAsAllowed()
+        {
+            // The server sends whatever the Scene carries; the web reads anything
+            // that is not false as allowed, and so does this.
+            Assert.IsTrue(Scene(@"{""id"": 1, ""timedEvents"": [], ""allowSkipping"": null}").AllowsSkipping());
+        }
+    }
 }

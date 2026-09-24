@@ -29,6 +29,16 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("duration")] public float Duration = 0.0f;
         
         [JsonProperty("showInSceneList")] public bool ShowInSceneList = true;
+
+        /// <summary>
+        /// Whether this Scene lets learners rewind and fast-forward. The Experience
+        /// switch is the outer gate — off, every Scene is locked whatever this says.
+        /// Absent means allowed, for Scenes authored before the setting existed.
+        /// </summary>
+        [JsonProperty("allowSkipping")] public bool? AllowSkipping;
+
+        public bool AllowsSkipping() => AllowSkipping != false;
+
         [JsonProperty("muteAudio")] public bool MuteAudio;
         [JsonProperty("thumbnailAsset")] public AssetData _thumbnail;
         [JsonProperty("endAction")] public ActionData EndAction = ActionData.NoAction;
