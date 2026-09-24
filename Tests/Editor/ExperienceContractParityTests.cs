@@ -375,7 +375,10 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
     {
         private static LessonData Lesson(string json) => JsonConvert.DeserializeObject<LessonData>(json);
 
-        private static SceneData Scene(string json) => JsonConvert.DeserializeObject<SceneData>(json);
+        // Every authored Scene carries a skybox, and SceneData's thumbnail assumes
+        // one; the setting is the only part that varies across these cases.
+        private static SceneData Scene(string setting) => JsonConvert.DeserializeObject<SceneData>(
+            @"{""id"": 1, ""timedEvents"": [], ""skyboxAsset"": {""id"": 7, ""path"": ""scene.jpg""}" + setting + "}");
 
         [Test]
         public void TestExperienceWithoutTheSettingAllowsSkipping()
@@ -398,13 +401,13 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
         [Test]
         public void TestSceneWithoutTheSettingAllowsSkipping()
         {
-            Assert.IsTrue(Scene(@"{""id"": 1, ""timedEvents"": []}").AllowsSkipping());
+            Assert.IsTrue(Scene("").AllowsSkipping());
         }
 
         [Test]
         public void TestSceneCanLockItself()
         {
-            Assert.IsFalse(Scene(@"{""id"": 1, ""timedEvents"": [], ""allowSkipping"": false}").AllowsSkipping());
+            Assert.IsFalse(Scene(@", ""allowSkipping"": false").AllowsSkipping());
         }
 
         [Test]
@@ -412,7 +415,7 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
         {
             // The server sends whatever the Scene carries; the web reads anything
             // that is not false as allowed, and so does this.
-            Assert.IsTrue(Scene(@"{""id"": 1, ""timedEvents"": [], ""allowSkipping"": null}").AllowsSkipping());
+            Assert.IsTrue(Scene(@", ""allowSkipping"": null").AllowsSkipping());
         }
     }
 }
