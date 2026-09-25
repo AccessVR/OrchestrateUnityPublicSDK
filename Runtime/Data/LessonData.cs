@@ -41,6 +41,15 @@ namespace AccessVR.OrchestrateVR.SDK
 		[JsonProperty("isLocked")] public bool IsLocked = false;
 
 		/// <summary>
+		/// Whether the author lets learners rewind and fast-forward. Absent means
+		/// allowed: Experiences published before the setting existed carry no value,
+		/// and their learners keep the controls they already had.
+		/// </summary>
+		[JsonProperty("allowSkipping")] public bool? AllowSkipping;
+
+		public bool AllowsSkipping() => AllowSkipping != false;
+
+		/// <summary>
 		/// Version identity of the published content this payload represents.
 		/// Stamped by HttpClient.GetLesson from the Lesson resource (they sit
 		/// beside `content`, like guid) and round-tripped through the lesson

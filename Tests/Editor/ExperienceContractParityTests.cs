@@ -364,4 +364,58 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
             }
         }
     }
+
+    /// <summary>
+    /// Author-controlled rewind and fast-forward: an Experience-level switch with a
+    /// per-Scene one inside it. Neither is present on anything published before the
+    /// setting existed, and absent has to read as allowed — those learners already
+    /// had the controls.
+    /// </summary>
+    public class TimelineSkippingContractTests
+    {
+        private static LessonData Lesson(string json) => JsonConvert.DeserializeObject<LessonData>(json);
+
+        // Every authored Scene carries a skybox, and SceneData's thumbnail assumes
+        // one; the setting is the only part that varies across these cases.
+        private static SceneData Scene(string setting) => JsonConvert.DeserializeObject<SceneData>(
+            @"{""id"": 1, ""timedEvents"": [], ""skyboxAsset"": {""id"": 7, ""path"": ""scene.jpg""}" + setting + "}");
+
+        [Test]
+        public void TestExperienceWithoutTheSettingAllowsSkipping()
+        {
+            Assert.IsTrue(Lesson(@"{""id"": 12}").AllowsSkipping());
+        }
+
+        [Test]
+        public void TestExperienceCanLockTheTimeline()
+        {
+            Assert.IsFalse(Lesson(@"{""id"": 12, ""allowSkipping"": false}").AllowsSkipping());
+        }
+
+        [Test]
+        public void TestExperienceCanLeaveTheTimelineOpen()
+        {
+            Assert.IsTrue(Lesson(@"{""id"": 12, ""allowSkipping"": true}").AllowsSkipping());
+        }
+
+        [Test]
+        public void TestSceneWithoutTheSettingAllowsSkipping()
+        {
+            Assert.IsTrue(Scene("").AllowsSkipping());
+        }
+
+        [Test]
+        public void TestSceneCanLockItself()
+        {
+            Assert.IsFalse(Scene(@", ""allowSkipping"": false").AllowsSkipping());
+        }
+
+        [Test]
+        public void TestExplicitNullReadsAsAllowed()
+        {
+            // The server sends whatever the Scene carries; the web reads anything
+            // that is not false as allowed, and so does this.
+            Assert.IsTrue(Scene(@", ""allowSkipping"": null").AllowsSkipping());
+        }
+    }
 }
