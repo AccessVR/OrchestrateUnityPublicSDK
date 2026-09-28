@@ -66,6 +66,7 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
             Assert.IsTrue(Config.Lesson.Id > 0);
         }
 
+        [Explicit("Hits the live API with a local config file; run by hand.")]
         [UnityTest]
         public IEnumerator TestLoadUser() => UniTask.ToCoroutine(async () =>
         {
@@ -198,6 +199,7 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
             Assert.AreEqual("e0425739-701f-48b0-aea3-7371178fdc03", lesson.GetDownloadableFiles().Find(file => file.Guid == showMediaAction.EventData.Asset.FileData.Guid)?.Guid);
         }
 
+        [Explicit("Hits the live API with a local config file; run by hand.")]
         [UnityTest]
         public IEnumerator TestLoadLesson() => UniTask.ToCoroutine(async () =>
         {
@@ -210,6 +212,7 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
             AssertValidLesson(lesson);
         });
 
+        [Explicit("Hits the live API with a local config file; run by hand.")]
         [UnityTest]
         public IEnumerator TestDownloads() => UniTask.ToCoroutine(async () =>
         {

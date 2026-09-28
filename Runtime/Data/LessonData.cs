@@ -69,6 +69,14 @@ namespace AccessVR.OrchestrateVR.SDK
 		/// preview payload stays recognizable.
 		/// </summary>
 		[JsonProperty("isPreview")] public bool IsPreview = false;
+
+		/// <summary>
+		/// Null when the Experience has no Conversation layers; false when the
+		/// learner's organization cannot hold the conversations they ask for
+		/// (conversations off, or no minutes) — the Lobby then refuses to start
+		/// the Experience rather than let a layer fail midway.
+		/// </summary>
+		[JsonProperty("conversationsAvailable")] public bool? ConversationsAvailable;
 		[JsonProperty("scenes")] public List<SceneData> Scenes = new();
 		
 		[JsonIgnore]
