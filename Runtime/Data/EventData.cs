@@ -36,6 +36,8 @@ namespace AccessVR.OrchestrateVR.SDK
         WorldSpace,
         Hidden,
         Hotspots,
+        /// <summary>A small panel that follows the learner's dominant hand (Conversation layers).</summary>
+        Tablet,
     }
 
     /// <remarks>
@@ -51,8 +53,14 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("id")] public string Id;
 
         /// <summary>
+        /// The scene this event was deserialized as part of; null for a hand-built
+        /// event. Views that address the server by scene (Conversation layers) read it.
+        /// </summary>
+        [JsonIgnore] [CanBeNull] public SceneData ParentScene => GetParentScene();
+
+        /// <summary>
         /// The raw numeric event type from the wire (1 PROMPT, 2 INFO/TEXT,
-        /// 3 QUESTION, 4 legacy VIDEO, 5 HOTSPOT, 6 MEDIA). The factory
+        /// 3 QUESTION, 4 legacy VIDEO, 5 HOTSPOT, 6 MEDIA, 8 CONVERSATION). The factory
         /// dispatches on it before deserialization; it is mapped here as well
         /// because analytics categorizes shown/dismissed events by it
         /// (media.* when 6, prompt.* otherwise — byte-parity with the web
@@ -189,6 +197,7 @@ namespace AccessVR.OrchestrateVR.SDK
                     1 => DisplayTypeOptions.WorldSpace,
                     2 => DisplayTypeOptions.Hidden,
                     3 => DisplayTypeOptions.Hotspots,
+                    4 => DisplayTypeOptions.Tablet,
                     _ => DisplayTypeOptions.HUD
                 };
             }

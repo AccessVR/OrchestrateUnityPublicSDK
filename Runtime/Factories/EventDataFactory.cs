@@ -38,6 +38,7 @@ namespace AccessVR.OrchestrateVR.SDK
 		        4 => json.ToObject<MediaEventData>(), // old video type
 		        5 => json.ToObject<HotspotEventData>(),
 		        6 => json.ToObject<MediaEventData>(),
+		        ConversationEventData.EventTypeCharacter => json.ToObject<ConversationEventData>(),
 		        _ => throw new Exception("Unknown event type: " + eventType)
 	        };
 

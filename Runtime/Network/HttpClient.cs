@@ -78,6 +78,7 @@ namespace AccessVR.OrchestrateVR.SDK
 				client.DefaultRequestHeaders.Add("Authorization", "Bearer " + authToken);
 			}
 			client.DefaultRequestHeaders.Add("Accept", "application/json");
+			client.DefaultRequestHeaders.Add(ClientFeatures.HeaderName, ClientFeatures.HeaderValue);
 
 			return client;
         }

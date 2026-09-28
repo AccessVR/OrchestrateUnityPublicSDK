@@ -122,6 +122,27 @@ namespace AccessVR.OrchestrateVR.SDK
 	        return Instance._activeAssignmentId;
         }
 
+        public const string HandLeft = "left";
+
+        public const string HandRight = "right";
+
+        /// <summary>
+        /// The hand a Conversation layer's virtual tablet follows: what the learner
+        /// chose on the Settings screen, else the right hand.
+        /// </summary>
+        public static string GetDominantHand()
+        {
+            Instance.LoadSessionData();
+            return Instance._sessionData.DominantHand == HandLeft ? HandLeft : HandRight;
+        }
+
+        public static void SetDominantHand(string hand)
+        {
+            Instance.LoadSessionData();
+            Instance._sessionData.DominantHand = hand == HandLeft ? HandLeft : HandRight;
+            Instance.SaveSessionData();
+        }
+
         public static bool HasNativeKeyboard()
         {
 	        return Application.platform == RuntimePlatform.IPhonePlayer;
@@ -246,6 +267,19 @@ namespace AccessVR.OrchestrateVR.SDK
             ApplyBuildEnvironmentOverride();
             _lastIsOfflineValue = IsOffline;
             LoadSessionData();
+            ConfigureWebViews();
+        }
+
+        // Every WebView in the app is created after this singleton wakes, which
+        // is the one moment these switches can be set everywhere: on macOS the
+        // Chromium process refuses them once it is running. Conversations are
+        // WebRTC calls, so pages need the microphone (getUserMedia) and the
+        // replica's audio must not be autoplay-blocked. Android's manifest
+        // declares RECORD_AUDIO; the runtime prompt is MicrophonePermission.
+        private static void ConfigureWebViews()
+        {
+            Web.SetCameraAndMicrophoneEnabled(true);
+            Web.SetAutoplayEnabled(true);
         }
 
         // Bridge build-time environment to runtime so a "Dev" / "Prod"
@@ -508,7 +542,8 @@ namespace AccessVR.OrchestrateVR.SDK
 	                OfflineStates.Offline => "offline",
 	                OfflineStates.Online => "online",
 	                _ => "unknown",
-				}}
+				}},
+				{"dominantHand", GetDominantHand()},
 			};
 
 			return settings;

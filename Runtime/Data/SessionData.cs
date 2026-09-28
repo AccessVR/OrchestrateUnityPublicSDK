@@ -19,6 +19,13 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("defaultSkybox")]
         public string DefaultSkybox { get; set; }
 
+        /// <summary>
+        /// "left" or "right": the hand a Conversation layer's virtual tablet
+        /// follows. Null until the learner chooses; right is assumed.
+        /// </summary>
+        [JsonProperty("dominantHand")]
+        public string DominantHand { get; set; }
+
         public SessionData()
         {
             AuthToken = null;
@@ -26,6 +33,7 @@ namespace AccessVR.OrchestrateVR.SDK
             UserCode = null;
             OfflineState = null;
             DefaultSkybox = null;
+            DominantHand = null;
         }
     }
 }

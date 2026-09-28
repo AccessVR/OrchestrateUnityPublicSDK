@@ -1,0 +1,19 @@
+{
+    "name": "AccessVR.OrchestrateVR.Public.SDK.Editor.Tests",
+    "references": [
+      "Newtonsoft.Json",
+      "AccessVR.OrchestrateVR.SDK",
+      "AccessVR.OrchestrateVR.Public.SDK",
+      "AccessVR.OrchestrateVR.Public.SDK.Tests",
+      "UnityEngine.TestRunner",
+      "UnityEditor.TestRunner",
+      "UniTask"
+    ],
+    "includePlatforms": [
+      "Editor"
+    ],
+    "excludePlatforms": [],
+    "defineConstraints": [
+      "UNITY_INCLUDE_TESTS"
+    ]
+}
