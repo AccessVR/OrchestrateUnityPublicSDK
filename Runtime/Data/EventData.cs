@@ -74,7 +74,11 @@ namespace AccessVR.OrchestrateVR.SDK
         
         [JsonProperty("buttonColor")] private string _buttonColor;
         [JsonProperty("buttonLabelColor")] private string _buttonLabelColor;
-        [JsonProperty("buttonText")] public string ButtonText = "OK";
+        /// <summary>
+        /// The author's footer-button label. Empty when they left it unset,
+        /// which the card shows as Continue, as the web player does.
+        /// </summary>
+        [JsonProperty("buttonText")] public string ButtonText = "";
         
         [JsonProperty("backgroundColor")] private string _backgroundColor;
         
