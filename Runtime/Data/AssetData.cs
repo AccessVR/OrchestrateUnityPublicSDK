@@ -20,6 +20,9 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("height")] public int? height;
         [JsonProperty("path")] public string path;
         [JsonProperty("originalPath")] public string originalPath;
+        [JsonProperty("originalWidth")] public int? originalWidth;
+        [JsonProperty("originalHeight")] public int? originalHeight;
+        [JsonProperty("downloads")] public List<VideoDownloadData> downloads;
         [JsonProperty("thumbnailPath")] public string thumbnailPath;
         [JsonProperty("subtitles")] public List<TranscriptData> Subtitles;
         
@@ -33,6 +36,30 @@ namespace AccessVR.OrchestrateVR.SDK
         public bool IsVideo() => assetTypeId == 6;
         public bool IsAudioOrVideo() => IsAudio() || IsVideo();
         public bool HasSubtitles() => SrtSubtitles != null && !string.IsNullOrEmpty(SrtSubtitles.Content);
+
+        [JsonIgnore] public VideoType VideoType =>
+            videoTypeId is int id && id != (int) VideoType.Unknown && Enum.IsDefined(typeof(VideoType), id)
+                ? (VideoType) id
+                : VideoType.Unknown;
+        public bool HasVideoType() => VideoType != VideoType.Unknown;
+        public bool Is180Video() =>
+            IsVideo() && VideoType is VideoType.Video180 or VideoType.Video180Stereo or VideoType.Video180StereoTab;
+        public bool IsStereoVideo() => StereoLayout != StereoLayout.None;
+
+        // Packing conventions shared with the web player (stereoLayout.js);
+        // the left eye is the left half or the top half, and is the mono eye.
+        [JsonIgnore] public StereoLayout StereoLayout => !IsVideo()
+            ? StereoLayout.None
+            : VideoType switch
+            {
+                VideoType.Video180Stereo => StereoLayout.SideBySide,
+                VideoType.Video360StereoSbs => StereoLayout.SideBySide,
+                VideoType.VideoStereoSbs => StereoLayout.SideBySide,
+                VideoType.Video180StereoTab => StereoLayout.TopBottom,
+                VideoType.Video360Stereo => StereoLayout.TopBottom,
+                VideoType.VideoStereoTab => StereoLayout.TopBottom,
+                _ => StereoLayout.None
+            };
         public TranscriptData SrtSubtitles => Subtitles?.FirstOrDefault(transcript => transcript.Format == TranscriptFormat.SRT);
         
         [JsonIgnore]
@@ -61,6 +88,35 @@ namespace AccessVR.OrchestrateVR.SDK
             }
         }
 
+        /// <summary>
+        /// The video file this device downloads: the full-resolution copy when
+        /// it can decode it or nothing smaller is offered, otherwise the
+        /// sharpest smaller copy it can, and failing that the smallest.
+        /// </summary>
+        public string VideoPathFor(Func<int, int, string, bool> canDecode)
+        {
+            if (downloads == null || downloads.Count == 0)
+            {
+                return originalPath;
+            }
+
+            // width and height are whichever rendition the server encoded
+            // last, so they're only the fallback. The full-resolution copy is
+            // HEVC (the server's mp4 template).
+            if ((originalWidth ?? width) is not int fullWidth || (originalHeight ?? height) is not int fullHeight
+                || canDecode(fullWidth, fullHeight, VideoDecoding.Hevc))
+            {
+                return originalPath;
+            }
+
+            VideoDownloadData sharpestPlayable = downloads
+                .Where(download => canDecode(download.Width, download.Height, download.Codec))
+                .OrderByDescending(download => download.Pixels)
+                .FirstOrDefault();
+
+            return (sharpestPlayable ?? downloads.OrderBy(download => download.Pixels).First()).Path;
+        }
+
         [JsonIgnore] 
         public DownloadableFileData FileData
         {
@@ -69,7 +125,7 @@ namespace AccessVR.OrchestrateVR.SDK
                 AssetPath assetPath = AssetPath.Make(path);
                 if (IsVideo() && !string.IsNullOrEmpty(originalPath))
                 {
-                    assetPath = AssetPath.Make(originalPath);
+                    assetPath = AssetPath.Make(VideoPathFor(VideoDecoding.CanDecode));
                 }
 
                 DownloadableFileData fileData = new DownloadableFileData(
