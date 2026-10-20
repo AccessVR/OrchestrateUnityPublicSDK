@@ -177,6 +177,30 @@ namespace AccessVR.OrchestrateVR.SDK.Tests
         }
 
         [Test]
+        public void TestServerAnswerForAnExitedRunDeserializes()
+        {
+            const string answer = "{\"id\":7,\"lessonId\":12,\"score\":0.5,\"passFail\":\"Exited\","
+                + "\"startedOn\":\"2026-10-20T16:08:00+00:00\",\"completedOn\":null,"
+                + "\"exitedAt\":\"2026-10-20T16:09:00+00:00\"}";
+
+            var submission = JsonConvert.DeserializeObject<SubmissionData>(answer);
+
+            Assert.IsNull(submission.CompletedOn);
+        }
+
+        [Test]
+        public void TestServerAnswerForACompletedRunKeepsItsCompletionTime()
+        {
+            const string answer = "{\"id\":7,\"lessonId\":12,\"score\":0.5,\"passFail\":\"Completed\","
+                + "\"startedOn\":\"2026-10-20T16:08:00+00:00\",\"completedOn\":\"2026-10-20T16:09:00+00:00\"}";
+
+            var submission = JsonConvert.DeserializeObject<SubmissionData>(answer);
+
+            Assert.AreEqual(new System.DateTimeOffset(2026, 10, 20, 16, 9, 0, System.TimeSpan.Zero).UtcDateTime,
+                submission.CompletedOn?.ToUniversalTime());
+        }
+
+        [Test]
         public void TestUntrackedRunOmitsRunId()
         {
             var lesson = new LessonData { Id = 12 };
