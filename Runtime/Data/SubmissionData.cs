@@ -12,7 +12,13 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("score")] public float Score;
         
         [JsonProperty("id")] public string Id;
-        [JsonProperty("completedOn")] public DateTime CompletedOn;
+        /// <summary>
+        /// When the server recorded the run as finished. Null for an exited
+        /// run. As a non-nullable DateTime, the server's null answer threw
+        /// after the run was already recorded, so the run never left the
+        /// offline queue and every run behind it went undelivered.
+        /// </summary>
+        [JsonProperty("completedOn")] public DateTime? CompletedOn;
 
         /// <summary>
         /// The run id this playthrough's ABXR telemetry was emitted under.
