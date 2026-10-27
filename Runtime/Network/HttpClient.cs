@@ -46,7 +46,12 @@ namespace AccessVR.OrchestrateVR.SDK
 
     public class HttpClient : BaseHttpClient
     {
-	    
+	    /// <summary>
+	    /// Tells the server which release of the app is asking, so it can tell
+	    /// when content only newer releases can play is safe to serve.
+	    /// </summary>
+	    public const string AppVersionHeader = "X-UNITY-APP-VERSION";
+
         private HttpClient(HttpMessageHandler handler) : base(handler)
         {
 			//
@@ -78,6 +83,7 @@ namespace AccessVR.OrchestrateVR.SDK
 				client.DefaultRequestHeaders.Add("Authorization", "Bearer " + authToken);
 			}
 			client.DefaultRequestHeaders.Add("Accept", "application/json");
+			client.DefaultRequestHeaders.Add(AppVersionHeader, Application.version);
 
 			return client;
         }
@@ -101,6 +107,7 @@ namespace AccessVR.OrchestrateVR.SDK
 	        {
 		        req.redirectLimit = 0;
 		        req.SetRequestHeader("Accept", "application/json");
+		        req.SetRequestHeader(AppVersionHeader, Application.version);
 		        var token = Orchestrate.GetAuthToken();
 		        if (!string.IsNullOrEmpty(token))
 		        {

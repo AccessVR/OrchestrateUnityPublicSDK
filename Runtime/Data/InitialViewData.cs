@@ -10,6 +10,13 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("quaternion")] private JObject _quaternion;
 
         [JsonIgnore] public Quaternion Quaternion;
+
+        /// <summary>
+        /// The heading the view opens on, in the web player's camera
+        /// longitude, degrees. The Scene's front, back, left and right (a
+        /// Panorama's position) are measured from it.
+        /// </summary>
+        [JsonProperty("longitude")] public float? Longitude;
         
         [OnDeserialized]
         public void OnDeserialized(StreamingContext context)

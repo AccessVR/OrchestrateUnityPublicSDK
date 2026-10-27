@@ -36,6 +36,12 @@ namespace AccessVR.OrchestrateVR.SDK
         WorldSpace,
         Hidden,
         Hotspots,
+
+        /// <summary>
+        /// Media only: the picture wraps around the learner at a fixed place,
+        /// its Position round the Scene's front, behind every other Layer.
+        /// </summary>
+        Panorama,
     }
 
     /// <remarks>
@@ -193,6 +199,7 @@ namespace AccessVR.OrchestrateVR.SDK
                     1 => DisplayTypeOptions.WorldSpace,
                     2 => DisplayTypeOptions.Hidden,
                     3 => DisplayTypeOptions.Hotspots,
+                    4 => DisplayTypeOptions.Panorama,
                     _ => DisplayTypeOptions.HUD
                 };
             }

@@ -48,11 +48,41 @@ namespace AccessVR.OrchestrateVR.SDK
         [JsonProperty("timedEvents")] private List<JObject> _timedEvents;
         [JsonProperty("screenType")] private int _screenType;
 
+        /// <summary>
+        /// True when nothing surrounds the learner but the floor: the Scene's
+        /// media plays on its Layers. Such a Scene may still name a placeholder
+        /// skybox, for builds from before this field existed; it isn't drawn.
+        /// </summary>
+        [JsonProperty("noSkybox")] private bool _noSkybox;
+
+        [JsonIgnore] public bool HasSkybox => !_noSkybox && Skybox != null;
+
+        /// <summary>
+        /// Degrees the skybox turns about the learner, as the web player turns
+        /// it: what was that far to the right comes round to the front. The
+        /// initial view and the Layers stay where they are.
+        /// </summary>
+        [JsonProperty("skyboxRotation")] public float SkyboxRotation;
+
+        /// <summary>
+        /// In a Scene with no skybox, the colors above and below the horizon,
+        /// as #rrggbb; null for the defaults (OXRSceneSurround).
+        /// </summary>
+        [JsonProperty("ceilingColor")] public string CeilingColor;
+
+        [JsonProperty("floorColor")] public string FloorColor;
+
         [JsonIgnore] public List<EventData> TimedEvents;
         [JsonIgnore] private LessonData _parentLesson;
         [JsonIgnore] public ScreenType ScreenType;
 
-        [JsonIgnore] public AssetData Thumbnail => _thumbnail?.Thumbnail ?? Skybox.Thumbnail;
+        /// <summary>
+        /// A Scene with no skybox is pictured by its thumbnailAsset (the
+        /// picture on its Scene media Layer), never by a placeholder skybox.
+        /// </summary>
+        [JsonIgnore] private AssetData PicturedSkybox => HasSkybox ? Skybox : null;
+
+        [JsonIgnore] public AssetData Thumbnail => _thumbnail?.Thumbnail ?? PicturedSkybox?.Thumbnail;
 
         /// <summary>
         /// The asset that owns this scene's thumbnail — and therefore caches its
@@ -60,7 +90,7 @@ namespace AccessVR.OrchestrateVR.SDK
         /// every read, so anything loading through it decodes the image again every
         /// time and leaves the previous texture behind.
         /// </summary>
-        [JsonIgnore] public AssetData ThumbnailAsset => _thumbnail ?? Skybox;
+        [JsonIgnore] public AssetData ThumbnailAsset => _thumbnail ?? PicturedSkybox;
 
         /// <summary>
         /// The scene's thumbnail, decoded once and kept on the owning asset, which
@@ -110,7 +140,10 @@ namespace AccessVR.OrchestrateVR.SDK
         {
             List<DownloadableFileData> list = new();
             
-            list.AddRange(Skybox?.GetDownloadableFiles() ?? new ());
+            if (HasSkybox)
+            {
+                list.AddRange(Skybox.GetDownloadableFiles());
+            }
             
             list.Add(Thumbnail?.FileData);
             
