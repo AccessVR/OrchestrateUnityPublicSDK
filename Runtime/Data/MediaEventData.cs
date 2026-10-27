@@ -21,5 +21,37 @@ namespace AccessVR.OrchestrateVR.SDK
         /// seeds position {0,0,-3} when the toggle is turned on.
         /// </summary>
         [JsonProperty("spatial")] public bool? Spatial;
+
+        /// <summary>
+        /// The part of the file the Layer plays. Absent plays the whole file.
+        /// </summary>
+        [JsonProperty("clip")] private MediaClipData _clip;
+
+        [JsonIgnore] public MediaClipData Clip => _clip ?? MediaClipData.Whole;
+
+        /// <summary>"card" (absent) frames the picture; "none" shows only the picture.</summary>
+        [JsonProperty("frame")] public string Frame;
+
+        /// <summary>
+        /// Where round the learner a Panorama stands: "front" (absent), "back",
+        /// "left" or "right" of the heading the Scene's initial view opens on.
+        /// </summary>
+        [JsonProperty("panoramaPosition")] public string PanoramaPosition;
+
+        /// <summary>
+        /// How far a Panorama's position turns from the Scene's front, in the
+        /// web player's camera longitude, which grows to the right.
+        /// </summary>
+        [JsonIgnore] public float PanoramaTurnDegrees => PanoramaPosition switch
+        {
+            "back" => 180f,
+            "left" => -90f,
+            "right" => 90f,
+            _ => 0f,
+        };
+
+        [JsonIgnore] public bool IsPanorama => DisplayType == DisplayTypeOptions.Panorama;
+
+        [JsonIgnore] public bool IsFrameless => Frame == "none";
     }
 }
